@@ -1,0 +1,49 @@
+[Info]
+Version = 3
+
+[Object]
+Acs1 = K3LSFR\k3ls.x
+Pmd2 = UserFile\Model\MMD_model_yaya\MD_Yaya_MMD.pmx
+Pmd3 = UserFile\Model\スカイドーム_ブルースカイCC6\Skydome_CC6\Dome_CC605.pmx
+Acs4 = K3LSFR\Ambient.x
+Acs5 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadow.x
+
+[Effect]
+Default = none
+Pmd2 = K3LSFR\controller\K3LS_A_00.fx
+Pmd2.show = true
+Pmd3 = none
+Acs4 = none
+
+[Effect@SSSSS_DepthMap]
+Owner = Acs1
+Acs1.show = false
+Pmd2 = K3LSFR\SSSSS_depth.fxsub
+Pmd3 = K3LSFR\SSSSS_depth.fxsub
+Acs4 = K3LSFR\SSSSS_depth.fxsub
+Acs5.show = false
+
+[Effect@ExcellentShadowZMap]
+Owner = Acs5
+Acs1.show = false
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Acs4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Acs5.show = false
+
+[Effect@ExcellentShadowZMapFar]
+Owner = Acs5
+Acs1.show = false
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Acs4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Acs5.show = false
+
+[Effect@ScreenShadowMap]
+Owner = Acs5
+Acs1.show = false
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Acs4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Acs5.show = false
+

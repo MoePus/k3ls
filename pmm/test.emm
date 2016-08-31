@@ -1,0 +1,140 @@
+[Info]
+Version = 3
+
+[Object]
+Acs1 = K3LSFR\Ambient.x
+Pmd2 = K3LSFR\Gbuffer_init.pmx
+Pmd3 = UserFile\Model\MMD_model_yaya\MD_Yaya_MMD.pmx
+Pmd4 = K3LSFR\controller\K3LS_A_con_00.pmx
+Pmd5 = UserFile\whiteAS\stage35.pmx
+Pmd6 = K3LSFR\controller\K3LS_A_con_01.pmx
+Acs7 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadow.x
+Acs8 = K3LSFR\k3ls.x
+Acs9 = tk_grid-floor\2_tk-grid.x
+
+[Effect]
+Default = none
+Acs1 = none
+Pmd2 = K3LSFR\Gbuffer_init.fx
+Pmd3 = K3LSFR\controller\K3LS_A_00.fx
+Pmd3.show = true
+Pmd3[1] = K3LSFR\controller\K3LS_A_01.fx
+Pmd3[16] = K3LSFR\controller\K3LS_A_01.fx
+Pmd4 = none
+Pmd5 = K3LSFR\controller\K3LS_A_00.fx
+Pmd5.show = true
+Pmd5[0].show = false
+Pmd5[3].show = false
+Pmd5[4].show = false
+Pmd5[5].show = false
+Pmd5[6].show = false
+Pmd5[7].show = false
+Pmd5[8].show = false
+Pmd5[9].show = false
+Pmd5[10].show = false
+Pmd5[11].show = false
+Pmd5[12].show = false
+Pmd5[13].show = false
+Pmd6 = none
+Acs9 = none
+
+[Effect@ExcellentShadowZMap]
+Owner = Acs7
+Acs1 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd5 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Pmd5[0].show = false
+Pmd5[3].show = false
+Pmd5[4].show = false
+Pmd5[5].show = false
+Pmd5[6].show = false
+Pmd5[7].show = false
+Pmd5[8].show = false
+Pmd5[9].show = false
+Pmd5[10].show = false
+Pmd5[11].show = false
+Pmd5[12].show = false
+Pmd5[13].show = false
+Pmd5[14].show = false
+Pmd6 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+Acs7.show = false
+Acs8.show = false
+Acs9 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDraw.fxsub
+
+[Effect@ExcellentShadowZMapFar]
+Owner = Acs7
+Acs1 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd5 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Pmd5[0].show = false
+Pmd5[3].show = false
+Pmd5[4].show = false
+Pmd5[5].show = false
+Pmd5[6].show = false
+Pmd5[7].show = false
+Pmd5[8].show = false
+Pmd5[9].show = false
+Pmd5[10].show = false
+Pmd5[11].show = false
+Pmd5[12].show = false
+Pmd5[13].show = false
+Pmd5[14].show = false
+Pmd6 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+Acs7.show = false
+Acs8.show = false
+Acs9 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowZBufDrawFar.fxsub
+
+[Effect@ScreenShadowMap]
+Owner = Acs7
+Acs1 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd2 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd3 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd4 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd5 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Pmd5[0].show = false
+Pmd5[3].show = false
+Pmd5[4].show = false
+Pmd5[5].show = false
+Pmd5[6].show = false
+Pmd5[7].show = false
+Pmd5[8].show = false
+Pmd5[9].show = false
+Pmd5[10].show = false
+Pmd5[11].show = false
+Pmd5[12].show = false
+Pmd5[13].show = false
+Pmd5[14].show = false
+Pmd6 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+Acs7.show = false
+Acs8.show = false
+Acs9 = K3LS\ExcellentShadow2(N2+CHigh)\ExcellentShadowObject.fxsub
+
+[Effect@SSSSS_DepthMap]
+Owner = Acs8
+Acs1 = K3LSFR\SSSSS_depth.fxsub
+Pmd2 = K3LSFR\SSSSS_depth.fxsub
+Pmd3 = K3LSFR\SSSSS_depth.fxsub
+Pmd4 = K3LSFR\SSSSS_depth.fxsub
+Pmd5 = K3LSFR\SSSSS_depth.fxsub
+Pmd5[0].show = false
+Pmd5[3].show = false
+Pmd5[4].show = false
+Pmd5[5].show = false
+Pmd5[6].show = false
+Pmd5[7].show = false
+Pmd5[8].show = false
+Pmd5[9].show = false
+Pmd5[10].show = false
+Pmd5[11].show = false
+Pmd5[12].show = false
+Pmd5[13].show = false
+Pmd5[14].show = false
+Pmd6 = K3LSFR\SSSSS_depth.fxsub
+Acs7.show = false
+Acs8.show = false
+Acs9 = K3LSFR\SSSSS_depth.fxsub
+
