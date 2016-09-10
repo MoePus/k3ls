@@ -60,7 +60,7 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	roughness = (roughness * 2.5) + 0.05;
+	roughness = (roughness * 2.2) + 0.01;
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
@@ -68,7 +68,9 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 		AmbientColor *= TexColor;
     }
 	
-	float3 t = tex2D(NorTexSampler, IN.Tex*(1+spaScale*8));
+	float4 nirmalAOmap = tex2D(NorTexSampler, IN.Tex*(1+spaScale*8));
+	float3 t = nirmalAOmap.xyz;
+	float  AOmap = nirmalAOmap.w;
 	float3 normal,spa;
     if (useNormalMap && spaornormal>=0.5) 
 	{
@@ -116,17 +118,17 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	else
 	{trans = 0.0f.xxx;}
 	 
-	float3 diffuse = (color*comp*NL+trans*pow(comp,0.09)*1.79)*LightAmbient;
+	float3 diffuse = (color*comp*NL+trans*pow(comp,0.09)*1.79)*Diffuse(roughness,normal,lightNormal,viewNormal)*invPi*LightAmbient;
 	
-	float3 mSpec = lerp(0.04,(color+trans)*spa, reflectance);
-	
-	float3 specular = BRDF(roughness,mSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a*ShadowMapVal;
+	float3 specular = (color+trans)*spa*BRDF(roughness,reflectance,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
-	float3 ambient = Hemisphere*AmbientColor*(1.65-dot(normal,IN.Normal));
+	float3 ambient = Hemisphere*AmbientColor;
+	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
+	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
 	
-	float3 outColor = diffuse*(1-metalness)+specular+ambient;
+	float3 outColor = (diffuse*(1-metalness)+specular)*ShadowMapVal+ambient*AOmap*aoColor;
 	//outColor.rgb = (1-ShadowMapVal).xxx;
 	return float4(outColor,DiffuseColor.a);
 }

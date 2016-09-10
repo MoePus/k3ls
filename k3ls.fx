@@ -172,7 +172,7 @@ inline float3 AF(float3 x)
 
 float EyeAdaption(float lum)
 {
-	return lerp(0.2f, lum, 0.5f);
+	return lerp(0.03f, 0.61f, lum);
 }
 
 float4 ACESToneMapping(float2 Tex: TEXCOORD0) : COLOR

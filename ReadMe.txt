@@ -3,10 +3,13 @@ beta版本，无法保证与最终版本渲染风格相同。
 
 ExcellentShadow.x 必须 阴影
 Ambient.x 必须 环境光 xyz指定天空颜色 rxyz指定地面颜色 Si 环境光强度
+HgSao.x 环境遮蔽
 k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲染的pmx  Si调整SSS_corrention Tr调整HDR强度
 
 模型改造相关。
 可以替换spa为法线贴图。
+
+加入了遮蔽贴图，可以烘焙出AO map后放置于法线贴图alpha通道内使用。
 
 模型载入controller中的fx开始渲染。
 所有fx初始效果相同，可以通过同名的pmx文件表情控制效果。
@@ -16,7 +19,7 @@ k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲
 	右下：暂时无效
 
 
-K3LS beta MoePus 2016.8.14
+K3LS beta v0.2 MoePus 2016.9.10
 
 Reference:
 https://github.com/gongminmin/KlayGE

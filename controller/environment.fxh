@@ -77,6 +77,21 @@ sampler ScreenShadowMapSampler = sampler_state {
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
+
+shared texture2D SSAO_Tex3 : RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0, 1.0};
+    int MipLevels = 0;
+    string Format = "D3DFMT_R16F";
+>;
+sampler2D SSAOSamp = sampler_state {
+    texture = <SSAO_Tex3>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = LINEAR;
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+};
+
 float size0 : CONTROLOBJECT < string name = "ExcellentShadow.x"; string item = "Si"; >;
 static float size1 = size0 * 0.1;
 

@@ -37,7 +37,7 @@ inline float3 G_Simth(float roughness,float3 lightNormal,float3 viewNormal,float
 }
 
 
-inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 lightNormal,float3 viewNormal)
+inline float3 BRDF(float roughness,float reflectance,float3 normal,float3 lightNormal,float3 viewNormal)
 {
 	float NV = dot(normal,viewNormal);
 	float NL = dot(lightNormal,normal);
@@ -48,4 +48,15 @@ inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 light
 	float3 G = G_Simth(roughness,lightNormal,viewNormal,normal);
 	
 	return D*F*G/(4.*NL*NV);
+}
+
+inline float3 Diffuse(float roughness,float3 normal,float3 lightNormal,float3 viewNormal)
+{
+	float NV = dot(normal,viewNormal);
+	float NL = dot(lightNormal,normal);
+	float3 halfVector = normalize( viewNormal + lightNormal );
+	float VH = saturate(dot(viewNormal, halfVector));
+	float FD90 = 0.5 + 2.0 * VH * VH * roughness;
+	
+	return F_UE4(1,FD90,NL)*F_UE4(1,FD90,NV);
 }

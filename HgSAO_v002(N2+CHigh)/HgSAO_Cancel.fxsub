@@ -1,0 +1,165 @@
+////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  HgSAO_Cancel.fxsub  AOキャンセルマップ作成(HgSAO_DepRTに適用するとAOがキャンセルされます)
+//  ( HgSAO.fx から呼び出されます．オフスクリーン描画用)
+//  作成: 針金P
+//
+////////////////////////////////////////////////////////////////////////////////////////////////
+// パラメータ宣言
+
+#define DEPTH_FAR  5000.0f   // 深度最遠値
+
+// 透過値に対する深度読み取り閾値
+float AlphaClipThreshold = 0.5;
+
+// スクリーン内描画範囲の倍率(画面縁SSAO処理のため広範囲を描画)
+#define ScrSizeRatio  1.1
+
+// スクリーンサイズ
+float2 ViewportSize : VIEWPORTPIXELSIZE;
+static float2 TrueScnScale = float2( floor(ViewportSize*ScrSizeRatio) ) / ViewportSize;
+
+// 座標変換行列
+float4x4 WorldViewMatrix : WORLDVIEW;
+float4x4 WorldMatrix     : WORLD;
+float4x4 ProjMatrix0     : PROJECTION;
+static float4x4 ProjMatrix = float4x4( ProjMatrix0[0] / TrueScnScale.x,
+                                       ProjMatrix0[1] / TrueScnScale.y,
+                                       ProjMatrix0[2],
+                                       ProjMatrix0[3] );
+
+//カメラ位置
+float3 CameraPosition  : POSITION < string Object = "Camera"; >;
+
+// マテリアル色
+float4 MaterialDiffuse : DIFFUSE  < string Object = "Geometry"; >;
+
+bool opadd; // 加算合成フラグ
+
+// オブジェクトのテクスチャ
+texture ObjectTexture: MATERIALTEXTURE;
+sampler ObjTexSampler = sampler_state {
+    texture = <ObjectTexture>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+    MIPFILTER = LINEAR;
+    ADDRESSU  = WRAP;
+    ADDRESSV  = WRAP;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+//MMM対応
+
+#ifndef MIKUMIKUMOVING
+    struct VS_INPUT{
+        float4 Pos    : POSITION;
+        float2 Tex    : TEXCOORD0;
+        float3 Normal : NORMAL;
+    };
+    #define MMM_SKINNING
+    #define GETPOS         (IN.Pos)
+    #define GET_PROJMAT(p) (ProjMatrix)
+#else
+    #define VS_INPUT  MMM_SKINNING_INPUT
+    #define MMM_SKINNING  float4 SkinOutPos = MMM_SkinnedPosition(IN.Pos, IN.BlendWeight, IN.BlendIndices, IN.SdefC, IN.SdefR0, IN.SdefR1);
+    #define GETPOS         (SkinOutPos)
+    float4x4 MMM_GetPMat(float4 pos){
+        float4x4 PMat = MMM_IsDinamicProjection ? MMM_DynamicFov(ProjMatrix0, length(CameraPosition-mul(pos, WorldMatrix).xyz)) : ProjMatrix0;
+        PMat._11_21_31_41 *= 1.0f/TrueScnScale.x;
+        PMat._12_22_32_42 *= 1.0f/TrueScnScale.y;
+        return PMat;
+    }
+    #define GET_PROJMAT(p)  MMM_GetPMat(p)
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// 深度描画
+
+struct VS_OUTPUT {
+    float4 Pos  : POSITION;
+    float2 Tex  : TEXCOORD1;
+};
+
+// 頂点シェーダ
+VS_OUTPUT VS_Object( VS_INPUT IN )
+{
+    VS_OUTPUT Out = (VS_OUTPUT)0; 
+    MMM_SKINNING
+
+    // カメラ視点のワールドビュー変換
+    float4 Pos = mul( GETPOS, WorldViewMatrix );
+
+    // 射影変換
+    Out.Pos = mul( Pos, GET_PROJMAT(GETPOS) );
+
+    // テクスチャ座標
+    Out.Tex = IN.Tex;
+
+    return Out;
+}
+
+//ピクセルシェーダ
+float4 PS_Object(VS_OUTPUT IN, uniform bool useTexture) : COLOR
+{
+    float alpha = MaterialDiffuse.a * !opadd;
+    if ( useTexture ) {
+        // テクスチャ透過値適用
+        alpha *= tex2D( ObjTexSampler, IN.Tex ).a * !opadd;
+    }
+    // α値が閾値以下の箇所は描画しない
+    clip(alpha - AlphaClipThreshold);
+
+    return float4(0, 0, 0, 1);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// テクニック
+
+// オブジェクト描画(セルフシャドウなし)
+technique DepthTec0 < string MMDPass = "object"; bool UseTexture = false; >
+{
+    pass DrawObject {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile vs_2_0 VS_Object();
+        PixelShader  = compile ps_2_0 PS_Object(false);
+    }
+}
+
+technique DepthTec1 < string MMDPass = "object"; bool UseTexture = true; >
+{
+    pass DrawObject {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile vs_2_0 VS_Object();
+        PixelShader  = compile ps_2_0 PS_Object(true);
+    }
+}
+
+// オブジェクト描画(セルフシャドウあり)
+technique DepthTecSS0 < string MMDPass = "object_ss"; bool UseTexture = false; >
+{
+    pass DrawObject {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile vs_2_0 VS_Object();
+        PixelShader  = compile ps_2_0 PS_Object(false);
+    }
+}
+
+technique DepthTecSS1 < string MMDPass = "object_ss"; bool UseTexture = true; >
+{
+    pass DrawObject {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile vs_2_0 VS_Object();
+        PixelShader  = compile ps_2_0 PS_Object(true);
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+//地面影は描画しない
+technique ShadowTec < string MMDPass = "shadow"; > { }
+// エッジは描画しない
+technique EdgeDepthTec < string MMDPass = "edge"; > { }
+
