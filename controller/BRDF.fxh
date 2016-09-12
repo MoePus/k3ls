@@ -37,10 +37,10 @@ inline float3 G_Simth(float roughness,float3 lightNormal,float3 viewNormal,float
 }
 
 
-inline float3 BRDF(float roughness,float reflectance,float3 normal,float3 lightNormal,float3 viewNormal)
+inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 lightNormal,float3 viewNormal)
 {
-	float NV = dot(normal,viewNormal);
-	float NL = dot(lightNormal,normal);
+	float NV = saturate(dot(normal,viewNormal));
+	float NL = saturate(dot(lightNormal,normal));
 	
 	float3 halfVector = normalize( viewNormal + lightNormal );
     float3 D = D_GGX(roughness,normal,halfVector);
@@ -50,13 +50,24 @@ inline float3 BRDF(float roughness,float reflectance,float3 normal,float3 lightN
 	return D*F*G/(4.*NL*NV);
 }
 
+float pow5(float v)
+{
+	return v*v*v*v*v;
+}
+
 inline float3 Diffuse(float roughness,float3 normal,float3 lightNormal,float3 viewNormal)
 {
-	float NV = dot(normal,viewNormal);
-	float NL = dot(lightNormal,normal);
+	float NV = saturate(dot(normal,viewNormal));
+	float NL = saturate(dot(lightNormal,normal));
 	float3 halfVector = normalize( viewNormal + lightNormal );
 	float VH = saturate(dot(viewNormal, halfVector));
-	float FD90 = 0.5 + 2.0 * VH * VH * roughness;
 	
-	return F_UE4(1,FD90,NL)*F_UE4(1,FD90,NV);
+	float FL = pow5(1-NL);
+	float FV = pow5(1-NV);
+	float RR = 2*roughness*VH*VH;
+	float Fretro_reflection = RR*(FL+FV+FL*FV*(RR-1));
+	
+	float Fd = (1-0.5*FL)*(1-0.5*FV) + Fretro_reflection;
+	
+	return Fd;
 }

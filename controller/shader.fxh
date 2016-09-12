@@ -118,9 +118,10 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	else
 	{trans = 0.0f.xxx;}
 	 
-	float3 diffuse = (color*comp*NL+trans*pow(comp,0.09)*1.79)*Diffuse(roughness,normal,lightNormal,viewNormal)*invPi*LightAmbient;
+	float3 diffuse = (color*comp*NL+trans*pow(comp,0.09)*1.79)*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient;
 	
-	float3 specular = (color+trans)*spa*BRDF(roughness,reflectance,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
+	float3 cSpec = reflectance * lerp(0.04,(color+trans)*spa,metalness);
+	float3 specular = BRDF(roughness,cSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
@@ -128,7 +129,12 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
 	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
 	
-	float3 outColor = (diffuse*(1-metalness)+specular)*ShadowMapVal+ambient*AOmap*aoColor;
+	diffuse *= 1-metalness;
+	
+	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
+	ambient *= (1.0 - (selfLight>0));
+	
+	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient*AOmap*aoColor + selfLight;
 	//outColor.rgb = (1-ShadowMapVal).xxx;
 	return float4(outColor,DiffuseColor.a);
 }

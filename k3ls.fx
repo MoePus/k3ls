@@ -172,7 +172,7 @@ inline float3 AF(float3 x)
 
 float EyeAdaption(float lum)
 {
-	return lerp(0.03f, 0.61f, lum);
+	return lerp(0.04f, 0.302f, lum);
 }
 
 float4 ACESToneMapping(float2 Tex: TEXCOORD0) : COLOR
@@ -195,7 +195,7 @@ float elapsed_time : ELAPSEDTIME;
 
 float CalcAdaptedLum(float adapted_lum, float current_lum)
 {
-	return adapted_lum + (current_lum - adapted_lum) * (1 - pow(0.98f, 40 * elapsed_time));
+	return adapted_lum + (current_lum - adapted_lum) * (1 - pow(0.98f, 60 * elapsed_time));
 }
 
 float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR

@@ -9,5 +9,6 @@ float specularStrength : CONTROLOBJECT < string name = "K3LS_A_con_03.pmx"; stri
 float metalness : CONTROLOBJECT < string name = "K3LS_A_con_03.pmx"; string item = "metalness"; >;
 float translucency : CONTROLOBJECT < string name = "K3LS_A_con_03.pmx"; string item = "translucency"; >;
 float SSS : CONTROLOBJECT < string name = "K3LS_A_con_03.pmx"; string item = "SSS"; >;
+float selfLighting : CONTROLOBJECT < string name = "K3LS_A_con_03.pmx"; string item = "selfLighting"; >;
 
 #include "shader.fxh"
