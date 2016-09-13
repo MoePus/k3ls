@@ -1,3 +1,16 @@
+texture ambientBakedTex <
+    string ResourceName = "ambientBaked.png"; //ストッキングのテクスチャ
+>;
+
+sampler ambientBakedTexSampler = sampler_state {
+    texture = <ambientBakedTex>;
+	MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = LINEAR;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
 inline float3 D_Blinn_Phong(float roughness,float3 normal,float3 halfVector)
 {
 	return pow(saturate(dot(normal,halfVector)),2./roughness/roughness - 2.)/(PI*roughness*roughness);
@@ -50,12 +63,12 @@ inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 light
 	return D*F*G/(4.*NL*NV);
 }
 
-float pow5(float v)
+inline float pow5(float v)
 {
 	return v*v*v*v*v;
 }
 
-inline float3 Diffuse(float roughness,float3 normal,float3 lightNormal,float3 viewNormal)
+inline float Diffuse(float roughness,float3 normal,float3 lightNormal,float3 viewNormal)
 {
 	float NV = saturate(dot(normal,viewNormal));
 	float NL = saturate(dot(lightNormal,normal));
@@ -70,4 +83,12 @@ inline float3 Diffuse(float roughness,float3 normal,float3 lightNormal,float3 vi
 	float Fd = (1-0.5*FL)*(1-0.5*FV) + Fretro_reflection;
 	
 	return Fd;
+}
+
+inline float Ambient(float smoothness,float reflectance,float3 normal,float3 viewNormal)
+{
+	float NV = saturate(dot(normal,viewNormal));
+	float2 ambientMap = tex2D( ambientBakedTexSampler, float2(NV,smoothness)).rg;
+	float ambient = ambientMap.r * (1 - reflectance) + ambientMap.g * reflectance;
+	return 3.*ambient;
 }
