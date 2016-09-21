@@ -85,10 +85,10 @@ inline float Diffuse(float roughness,float3 normal,float3 lightNormal,float3 vie
 	return Fd;
 }
 
-inline float Ambient(float smoothness,float reflectance,float3 normal,float3 viewNormal)
+inline float Ambient(float shininess,float reflectance,float3 normal,float3 viewNormal)
 {
 	float NV = saturate(dot(normal,viewNormal));
-	float2 ambientMap = tex2D( ambientBakedTexSampler, float2(NV,smoothness)).rg;
-	float ambient = ambientMap.r * (1 - reflectance) + ambientMap.g * reflectance;
+	float2 ambientMap = tex2D( ambientBakedTexSampler, float2(NV,shininess)).rg;
+	float ambient = ambientMap.g * (1 - reflectance) + ambientMap.r * reflectance;
 	return 3.*ambient;
 }

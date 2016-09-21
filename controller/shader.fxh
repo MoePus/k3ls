@@ -60,7 +60,8 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	float smoothness = clamp(1 - sqrt(roughness),0.01,0.99);
+	float shininess = clamp(roughness * roughness,0.01,0.99);
+
 	roughness = (roughness * 2.2) + 0.01;
 	if (useTexture) 
 	{
@@ -126,7 +127,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
-	float3 ambient = Hemisphere*AmbientColor*Ambient(smoothness,reflectance,normal,viewNormal);
+	float3 ambient = Hemisphere*AmbientColor*Ambient(shininess,reflectance,normal,viewNormal);
 	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
 	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
 	

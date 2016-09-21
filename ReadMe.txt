@@ -22,9 +22,10 @@ k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲
 K3LS beta v0.25 MoePus 2016.9.11
 
 Reference:
-https://github.com/gongminmin/KlayGE
 http://graphicrants.blogspot.jp/2013/08/specular-brdf-reference.html
 http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf
+http://renderwonk.com/publications/s2010-shading-course/gotanda/course_note_practical_implementation_at_triace.pdf
+https://github.com/gongminmin/KlayGE
 http://www.iryoku.com/sssss/
 http://iryoku.com/translucency/
 NCHLShader2
