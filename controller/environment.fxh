@@ -4,7 +4,7 @@ static float2 ViewportOffset = (float2(0.5,0.5)/ViewportSize);
 float3   CameraPosition    : POSITION  < string Object = "Camera"; >;
 float3   LightDirection    : DIRECTION < string Object = "Light"; >;
 float3   _LightAmbient      : AMBIENT   < string Object = "Light"; >;
-static float3 LightAmbient = _LightAmbient * 2.;
+static float3 LightAmbient = _LightAmbient * 4.;
 const float PI = 3.14159265359f;
 const float invPi = 0.31830988618;
 
@@ -24,7 +24,7 @@ float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string i
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
 
-static float3 AmbientColor  = MaterialToon*MaterialEmmisive*AmbLightPower*5;
+static float3 AmbientColor  = MaterialToon*MaterialEmmisive*AmbLightPower*0.06;
 static float3 AmbLightColor0 = saturate(AmbColorXYZ*0.01); 
 static float3 AmbLightColor1 = saturate(AmbColorRxyz*1.8/3.141592); 
 
@@ -127,6 +127,7 @@ float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
 float4x4 WorldMatrix              : WORLD;
 float4x4 WorldMatrixInverse       : WORLDINVERSE;
 float4x4 ViewMatrix               : VIEW;
+float4x4 ViewInverseMatrix		  : VIEWINVERSE;
 //float4x4 LightWorldViewProjMatrix : WORLDVIEWPROJECTION < string Object = "Light"; >;
 //float4x4 LightWorldViewMatrix     : WORLDVIEW < string Object = "Light"; >;
 
@@ -136,3 +137,48 @@ technique EdgeTec < string MMDPass = "edge"; > {}
 
 // ”∞√Ëª≠”√•∆•Ø•À•√•Ø
 technique ShadowTec < string MMDPass = "shadow"; > {}
+
+
+
+texture IBLDiffuseTexture <
+    string ResourceName = "skybox\\skydiff.dds"; 
+>;
+
+sampler IBLDiffuseSampler = sampler_state {
+    texture = <IBLDiffuseTexture>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+	MIPFILTER = NONE;
+    ADDRESSU  = CLAMP;  
+    ADDRESSV  = CLAMP;
+};
+
+texture IBLSpecularTexture <
+    string ResourceName = "skybox\\skyspec.dds"; 
+	int MipLevels = 6;
+>;
+sampler IBLSpecularSampler = sampler_state {
+    texture = <IBLSpecularTexture>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+    MIPFILTER = LINEAR;
+    ADDRESSU  = CLAMP;
+    ADDRESSV  = CLAMP;
+};
+
+
+float2 computeSphereCoord(float3 normal)
+{
+    float2 coord = float2(1 - (atan2(normal.x, normal.z) * invPi * 0.5f + 0.5f), acos(normal.y) * invPi);
+    return coord;
+}
+
+void IBL(float3 viewNormal, float3 normal,float roughness, out float3 diffuse, out float3 specular)
+{
+	float3 R = reflect(-viewNormal, normal);
+	float mipLayer = lerp(0, 6, roughness);
+
+	float2 coord = computeSphereCoord(R);
+	diffuse = tex2D(IBLDiffuseSampler, coord);
+    specular = tex2Dlod(IBLSpecularSampler, float4(coord, 0, mipLayer));
+}

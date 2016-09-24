@@ -1,6 +1,8 @@
+/*
 texture ambientBakedTex <
     string ResourceName = "ambientBaked.png"; //ストッキングのテクスチャ
 >;
+
 
 sampler ambientBakedTexSampler = sampler_state {
     texture = <ambientBakedTex>;
@@ -10,6 +12,7 @@ sampler ambientBakedTexSampler = sampler_state {
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
+*/
 
 inline float3 D_Blinn_Phong(float roughness,float3 normal,float3 halfVector)
 {
@@ -85,10 +88,27 @@ inline float Diffuse(float roughness,float3 normal,float3 lightNormal,float3 vie
 	return Fd;
 }
 
+//
+/*
 inline float Ambient(float shininess,float reflectance,float3 normal,float3 viewNormal)
 {
 	float NV = saturate(dot(normal,viewNormal));
 	float2 ambientMap = tex2D( ambientBakedTexSampler, float2(NV,shininess)).rg;
 	float ambient = ambientMap.g * (1 - reflectance) + ambientMap.r * reflectance;
 	return 3.*ambient;
+}
+*/
+//
+
+inline float3 AmbientBRDF_UE4( float3 SpecularColor, float Roughness, float NoV )
+{
+	// [ Lazarov 2013, "Getting More Physical in Call of Duty: Black Ops II" ]
+	// Adaptation to fit our G term.
+	const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
+	const float4 c1 = { 1, 0.0425, 1.04, -0.04 };
+	float4 r = Roughness * c0 + c1;
+	float a004 = min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
+	float2 AB = float2( -1.04, 1.04 ) * a004 + r.zw;
+
+	return SpecularColor * AB.x + AB.y;
 }

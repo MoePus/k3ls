@@ -60,14 +60,13 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	float shininess = clamp(roughness * roughness,0.01,0.99);
-
-	roughness = (roughness * 2.2) + 0.01;
+	float mroughness = roughness;
+	roughness = 1.1*roughness+0.01;
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
         DiffuseColor = TexColor;
-		AmbientColor *= TexColor;
+		//AmbientColor *= TexColor;
     }
 	
 	float4 nirmalAOmap = tex2D(NorTexSampler, IN.Tex*(1+spaScale*8));
@@ -127,7 +126,13 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
-	float3 ambient = Hemisphere*AmbientColor*Ambient(shininess,reflectance,normal,viewNormal);
+	//float3 ambient = Hemisphere*(AmbientBRDF_UE4(cSpec,roughness,dot(normal,viewNormal))+AmbientColor);
+	
+	float3 IBLD,IBLS;
+	IBL(viewNormal,normal,mroughness,IBLD,IBLS);
+	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * (1-metalness) + IBLS * AmbientBRDF_UE4(cSpec,mroughness,dot(normal,viewNormal)));
+	
+	
 	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
 	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
 	
