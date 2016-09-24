@@ -5,6 +5,8 @@ ExcellentShadow.x 必须 阴影
 HgSao.x  必须  环境遮蔽
 Ambient.x 必须 环境光 xyz指定天空颜色 rxyz指定地面颜色 Si 环境光强度
 k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲染的pmx  Si调整SSS_corrention Tr调整HDR强度
+Skybox.pmx 天空盒，自行替换hdr贴图
+
 
 模型改造相关。
 可以替换spa为法线贴图。
@@ -19,7 +21,7 @@ k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲
 	右下：暂时无效
 
 
-K3LS beta v0.25 MoePus 2016.9.11
+K3LS beta v0.4 MoePus 2016.9.24
 
 Reference:
 http://graphicrants.blogspot.jp/2013/08/specular-brdf-reference.html
@@ -28,6 +30,11 @@ http://renderwonk.com/publications/s2010-shading-course/gotanda/course_note_prac
 https://github.com/gongminmin/KlayGE
 http://www.iryoku.com/sssss/
 http://iryoku.com/translucency/
+Ray(https://github.com/ray-cast/ray-mmd)
 NCHLShader2
 N2+CShader
 MikuMikuEffect Reference
+
+
+TODO:
+PSSM
