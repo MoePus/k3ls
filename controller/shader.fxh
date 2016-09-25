@@ -104,10 +104,11 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
     TransScreenTex += ViewportOffset;
 
 	float ShadowMapVal = saturate(tex2D(ScreenShadowMapProcessedSamp, TransScreenTex).r);
+	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
 	//float dist = tex2D(ScreenShadowMapSampler, TransScreenTex).b*sqrt(size1)/300.;
 	float ToonShade = smoothstep(0, 1.5, NL*0.5f+0.5f);
 	float comp = lerp(ToonShade,ShadowMapVal*ToonShade,1-ShadowMapVal);
-	
+	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
 	
 	float3 trans;
@@ -115,11 +116,11 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	{float s = 1-ShadowMapVal;
 	s = max(0,s-0.94)*5.2 +s;
 	s*=10.4 - pow(32.74549*translucency,0.66);
-	trans= CalcTranslucency(s)*irradiance*color;}
+	trans= CalcTranslucency(s)*irradiance*color*aoColor;}
 	else
 	{trans = 0.0f.xxx;}
 	 
-	float3 diffuse = (color*comp*NL+trans*pow(comp,0.09)*1.79)*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient;
+	float3 diffuse = (color*comp*NL+trans*pow(comp,0.4))*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient;
 	
 	float3 cSpec = reflectance * lerp(0.04,(color+trans)*spa,metalness);
 	float3 specular = BRDF(roughness,cSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
@@ -132,10 +133,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	IBL(viewNormal,normal,mroughness,IBLD,IBLS);
 	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * (1-metalness) + IBLS * AmbientBRDF_UE4(cSpec,mroughness,dot(normal,viewNormal)));
 	
-	
-	float ao = tex2D( SSAOSamp, TransScreenTex ).r;
-	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
-	
+
 	diffuse *= 1-metalness;
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
