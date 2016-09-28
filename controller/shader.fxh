@@ -60,8 +60,7 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	float mroughness = roughness;
-	roughness = 1.1*roughness+0.01;
+	roughness = saturate(roughness + 0.04f);
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
@@ -95,7 +94,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 color = DiffuseColor.xyz;
 	float3 lightNormal = normalize(-LightDirection);
 	float3 viewNormal = normalize(IN.Eye);
-	float NL = dot(lightNormal,normal);
+	float NL = saturate(dot(lightNormal,normal));
 		
 	IN.Pos2.xyz /= IN.Pos2.w;
 	float2 TransScreenTex;
@@ -109,6 +108,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float ToonShade = smoothstep(0, 1.5, NL*0.5f+0.5f);
 	float comp = lerp(ToonShade,ShadowMapVal*ToonShade,1-ShadowMapVal);
 	float3 aoColor = lerp(ao,sqrt(pow(ao,1.7)),sqrt(1-comp));
+	aoColor *= AOmap;
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
 	
 	float3 trans;
@@ -120,27 +120,23 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	else
 	{trans = 0.0f.xxx;}
 	 
-	float3 diffuse = (color*comp*NL+trans*pow(comp,0.4))*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient;
+	float3 diffuse = (color*NL+trans*pow(comp,0.35)*1.3)*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
-	float3 cSpec = reflectance * lerp(0.04,(color+trans)*spa,metalness);
-	float3 specular = BRDF(roughness,cSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
+	float3 cSpec = reflectance * lerp(0.04,spa,metalness);
+	float3 specular = color * BRDF(roughness,cSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
-	//float3 ambient = Hemisphere*(AmbientBRDF_UE4(cSpec,roughness,dot(normal,viewNormal))+AmbientColor);
 	
 	float3 IBLD,IBLS;
-	IBL(viewNormal,normal,mroughness,IBLD,IBLS);
-	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * (1-metalness) + IBLS * AmbientBRDF_UE4(cSpec,mroughness,dot(normal,viewNormal)));
-	
-
-	diffuse *= 1-metalness;
+	IBL(viewNormal,normal,roughness,IBLD,IBLS);
+	float NoV = saturate(dot(normal,viewNormal));
+	float3 ambient =  Hemisphere + AmbientColor * ((DiffuseColor + trans) * IBLD * (1-metalness) + color * IBLS * AmbientBRDF_UE4(cSpec,roughness,NoV));
+	ambient *= saturate(pow(NoV + aoColor,roughness*roughness) - 1 + aoColor);
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
-	ambient *= (1.0 - (selfLight>0));
 	
-	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient*AOmap*aoColor + selfLight;
-	//outColor.rgb = (1-ShadowMapVal).xxx;
+	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient + selfLight;
 	return float4(outColor,DiffuseColor.a);
 }
 

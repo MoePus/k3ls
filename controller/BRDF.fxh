@@ -1,28 +1,11 @@
-/*
-texture ambientBakedTex <
-    string ResourceName = "ambientBaked.png"; //ストッキングのテクスチャ
->;
-
-
-sampler ambientBakedTexSampler = sampler_state {
-    texture = <ambientBakedTex>;
-	MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = LINEAR;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
-};
-*/
-
-inline float3 D_Blinn_Phong(float roughness,float3 normal,float3 halfVector)
+inline float square(float x)
 {
-	return pow(saturate(dot(normal,halfVector)),2./roughness/roughness - 2.)/(PI*roughness*roughness);
+    return x * x;
 }
-
 
 inline float3 D_GGX(float roughness,float3 normal,float3 halfVector)
 {
-	return roughness*roughness/(PI*pow(pow(saturate(dot(normal,halfVector)),2)*(roughness*roughness-1)+1,2));
+	return square(roughness)/(PI*pow(pow(saturate(dot(normal,halfVector)),2)*(square(roughness)-1)+1,2));
 }
 
 
@@ -55,6 +38,7 @@ inline float3 G_Simth(float roughness,float3 lightNormal,float3 viewNormal,float
 
 inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 lightNormal,float3 viewNormal)
 {
+	roughness = square(roughness);
 	float NV = saturate(dot(normal,viewNormal));
 	float NL = saturate(dot(lightNormal,normal));
 	
@@ -88,17 +72,6 @@ inline float Diffuse(float roughness,float3 normal,float3 lightNormal,float3 vie
 	return Fd;
 }
 
-//
-/*
-inline float Ambient(float shininess,float reflectance,float3 normal,float3 viewNormal)
-{
-	float NV = saturate(dot(normal,viewNormal));
-	float2 ambientMap = tex2D( ambientBakedTexSampler, float2(NV,shininess)).rg;
-	float ambient = ambientMap.g * (1 - reflectance) + ambientMap.r * reflectance;
-	return 3.*ambient;
-}
-*/
-//
 
 inline float3 AmbientBRDF_UE4( float3 SpecularColor, float Roughness, float NoV )
 {

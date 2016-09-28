@@ -234,7 +234,7 @@ float4 Blur_PS(float2 Tex: TEXCOORD0,uniform bool blurX) : COLOR
     // the factor 1.0 / depthM.
 	
 	sampler2D Samp;
-	float SSS_strength = tex2D(KG01SAMP,Tex).r*3;
+	float SSS_strength = tex2D(KG01SAMP,Tex).r * 3.5f;
 	if(blurX)
 	{
 		step.x = (1 + BlurIndex)*SSS_strength;
