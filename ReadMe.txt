@@ -17,10 +17,10 @@ RGB：法线XYZ，A：遮蔽贴图Y
 表情 	左上：spa贴图与法线贴图相关
 	右上：物理参数相关
 	左下：特殊效果相关
-	右下：不建议
+	右下：自发光，表面清漆相关
 
 
-K3LS beta v0.5 MoePus 2016.9.28
+K3LS beta v0.6 MoePus 2016.10.7
 
 Reference:
 http://graphicrants.blogspot.jp/2013/08/specular-brdf-reference.html
@@ -30,11 +30,13 @@ https://github.com/gongminmin/KlayGE
 http://www.iryoku.com/sssss/
 http://iryoku.com/translucency/
 Ray(https://github.com/ray-cast/ray-mmd)
+https://zhuanlan.zhihu.com/p/20119162?refer=graphics
 NCHLShader2
 N2+CShader
 MikuMikuEffect Reference
 
 
 TODO:
+SSDO
 PSSM
 Forward -> Deferred

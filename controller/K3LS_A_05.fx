@@ -10,5 +10,7 @@ float metalness : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item
 float translucency : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "translucency"; >;
 float SSS : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "SSS"; >;
 float selfLighting : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "selfLighting"; >;
+float varnishAlpha : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "varnishAlpha"; >;
+float varnishRough : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "varnishRough"; >;
 
 #include "shader.fxh"

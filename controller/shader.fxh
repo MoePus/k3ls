@@ -136,7 +136,11 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
 	
-	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient + selfLight;
+	IBL(viewNormal,normal,varnishRough,IBLD,IBLS);
+	float3 surfaceSpecular = 0.2f * varnishAlpha * (0.32 * length(IBLS) * AmbientBRDF_UE4(1.0.xxx,varnishRough,NoV) + BRDF(varnishRough,1,normal,lightNormal,viewNormal)*NL*LightAmbient);
+	
+	
+	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient + selfLight + surfaceSpecular;
 	return float4(outColor,DiffuseColor.a);
 }
 
