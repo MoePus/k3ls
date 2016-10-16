@@ -1,6 +1,9 @@
 beta版本，无法保证与最终版本渲染风格相同。
 任何BUG请回报
 
+使用方法：
+在MME中为模型分配controller中的fx，同时使用controller的pmx文件的表情调整效果。
+
 PSSM.x 必须 阴影
 HgSao.x  必须  环境遮蔽
 Ambient.x 必须 环境光 xyz指定天空颜色 rxyz指定地面颜色 Si 环境光强度 Si推荐1-2，不要太高
@@ -22,7 +25,7 @@ RGB：法线XYZ，A：遮蔽贴图Y
 
 已移除ExcellentShadow。
 
-K3LS beta v0.7 MoePus 2016.10.16
+K3LS beta v0.71 MoePus 2016.10.16
 
 
 
