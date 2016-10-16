@@ -1,9 +1,9 @@
 beta版本，无法保证与最终版本渲染风格相同。
 任何BUG请回报
 
-ExcellentShadow.x 必须 阴影
+PSSM.x 必须 阴影
 HgSao.x  必须  环境遮蔽
-Ambient.x 必须 环境光 xyz指定天空颜色 rxyz指定地面颜色 Si 环境光强度
+Ambient.x 必须 环境光 xyz指定天空颜色 rxyz指定地面颜色 Si 环境光强度 Si推荐1-2，不要太高
 k3ls.x HDR效果与SSS效果，想要使用SSS效果必须载入Gbuffer_init.pmx并设置为第一个渲染的pmx  Si调整SSS_corrention Tr调整HDR强度
 Skybox.pmx 天空盒，自行替换hdr贴图，可不要
 
@@ -20,7 +20,11 @@ RGB：法线XYZ，A：遮蔽贴图Y
 	右下：自发光，表面清漆相关
 
 
-K3LS beta v0.6 MoePus 2016.10.7
+已移除ExcellentShadow。
+
+K3LS beta v0.7 MoePus 2016.10.16
+
+
 
 Reference:
 http://graphicrants.blogspot.jp/2013/08/specular-brdf-reference.html
@@ -37,6 +41,6 @@ MikuMikuEffect Reference
 
 
 TODO:
-SSDO
-PSSM
+SSDO ×
+PSSM √
 Forward -> Deferred

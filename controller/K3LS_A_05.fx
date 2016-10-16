@@ -1,4 +1,4 @@
-#include "environment.fxh"
+#include "headers\\environment.fxh"
 
 float roughness : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "roughness"; >;
 float reflectance : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "reflectance"; >;
@@ -13,4 +13,4 @@ float selfLighting : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string i
 float varnishAlpha : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "varnishAlpha"; >;
 float varnishRough : CONTROLOBJECT < string name = "K3LS_A_con_05.pmx"; string item = "varnishRough"; >;
 
-#include "shader.fxh"
+#include "headers\\shader.fxh"
