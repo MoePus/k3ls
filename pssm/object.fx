@@ -1,5 +1,6 @@
 #include "common.fxsub"
 
+
 float3 LightDirection : DIRECTION < string Object = "Light"; >;
 
 static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
@@ -7,14 +8,13 @@ static float4x4 matLightViewProject = mul(matLightView, matLightProject);
 static float4x4 matLightProjectToCameraView = mul(matViewInverse, matLightView);
 static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);
 
-#if RECIEVER_ALPHA_MAP_ENABLE
 texture DiffuseMap: MATERIALTEXTURE;
 sampler DiffuseMapSamp = sampler_state {
 	texture = <DiffuseMap>;
 	MinFilter = POINT;	MagFilter = POINT;	MipFilter = POINT;
 	ADDRESSU  = WRAP;	ADDRESSV  = WRAP;
 };
-#endif
+
 
 shared texture PSSMDepth : OFFSCREENRENDERTARGET;
 sampler PSSMsamp = sampler_state {
@@ -63,13 +63,9 @@ DrawObject_OUTPUT ShadowObjectVS(
 
 float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 {
-#if RECIEVER_ALPHA_ENABLE
 	float alpha = MaterialDiffuse.a;
-#if RECIEVER_ALPHA_MAP_ENABLE
 	if (useTexture) alpha *= tex2D(DiffuseMapSamp, IN.Tex.xy).a;
-#endif
-	clip(alpha - 0.01);
-#endif
+	//clip(alpha - 0.01);
 
 	float4 lightPPos0 = CalcCascadePPos(IN.LightPPos01.xy, float2(0, 0), 0);
 	float4 lightPPos1 = CalcCascadePPos(IN.LightPPos01.zw, float2(1, 0), 1);
@@ -106,13 +102,9 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( 0,-s)).x, receiverDepth, sdrate);
 	shadow /= 9;
 	
-#if SSAO_DISABLE
-	IN.PPos.z = -IN.PPos.z;
-#endif
 
-#if RECIEVER_ALPHA_ENABLE
-	shadow = (alpha <= RecieverAlphaThreshold) ? 1 : shadow;
-#endif
+
+	shadow = lerp(1,shadow,min(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold));
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
 	return float4(shadow, IN.PPos.z, 0, 1);

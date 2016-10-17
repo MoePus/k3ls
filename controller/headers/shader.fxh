@@ -60,37 +60,42 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	roughness = saturate(roughness + 0.04f);
 	translucency *= 1.5;
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
         DiffuseColor = TexColor;
-		//AmbientColor *= TexColor;
     }
 	
-	float4 nirmalAOmap = tex2D(NorTexSampler, IN.Tex*(1+spaScale*8));
-	float3 t = nirmalAOmap.xyz;
-	float  AOmap = nirmalAOmap.w;
+	float2 scaledTex = IN.Tex*(1+spaScale*8.5f);
+	float4 normalAOmap = tex2D(NorTexSampler, scaledTex);
+	float3 t = normalAOmap.xyz;
+	float  AOmap = normalAOmap.w;
 	float3 normal,spa;
-    if (useNormalMap && spaornormal>=0.5) 
+    
+	float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
+	if(useNormalMap) 
 	{
-        float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, IN.Tex*(1+spaScale*8));
-        normal = 2.0f * t - 1;
-		normal.rg *= ((spaornormal-0.5)*30);
-		normal = normalize(normal);
-		normal = normalize(mul(normal, tangentFrame));
-		spa = (1-specularStrength).xxx;
-    } 
-	else if(useNormalMap)
-	{
-        normal = normalize(IN.Normal);
-		spa = t*2*(0.5-spaornormal)*(1-specularStrength);
+		if (spaornormal>=0.5) //Use for Normal
+		{
+			normal = 2.0f * t - 1;
+			normal.rg *= ((spaornormal-0.5)*30);
+			normal = normalize(normal);
+			spa = (1-specularStrength).xxx;
+		}
+		else //Use for Spa
+		{
+			normal = float3(0,0,1);
+			spa = t*2*(0.5-spaornormal)*(1-specularStrength);
+		}
     }else
 	{
-	    normal = normalize(IN.Normal);
+	    normal = float3(0,0,1);
 		spa = (1-specularStrength).xxx;
 	}
+	
+	normal = normalize(mul(normal, tangentFrame));
+	
 	
 	float3 color = DiffuseColor.xyz;
 	float3 lightNormal = normalize(-LightDirection);
@@ -109,14 +114,14 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	
 	float3 aoColor = ao * AOmap;
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
-	
 	float3 trans = translucency*CalcTranslucency(shadowMap.y)*irradiance*color;
 
 	 
-	float3 diffuse = (color*NL+trans)*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
+	float3 diffuse = (color+trans)*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
-	float3 cSpec = reflectance * lerp(0.04,spa,metalness);
-	float3 specular = color * BRDF(roughness,cSpec,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
+	float3 cSpec = lerp(0.04,reflectance * spa,metalness);
+	//return float4(spa,1);
+	float3 specular = cSpec * BRDF(roughness,color,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
     float3 Hemisphere = lerp(GROUNDCOLOR, SKYCOLOR, SdN*SdN);
@@ -124,7 +129,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,roughness,IBLD,IBLS);
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambient =  Hemisphere + AmbientColor * ((DiffuseColor + trans) * IBLD * (1-metalness) + color * IBLS * AmbientBRDF_UE4(cSpec,roughness,NoV));
+	float3 ambient =  Hemisphere + AmbientColor * ((DiffuseColor + trans) * IBLD * lerp(0.3679,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.63212,1,metalness); //TBD
 	ambient *= aoColor;
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;

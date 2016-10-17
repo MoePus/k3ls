@@ -54,7 +54,6 @@ sampler NorTexSampler = sampler_state {
     MAXANISOTROPY = 16;
     ADDRESSU = WRAP;
     ADDRESSV = WRAP;
-
 };
 
 shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <

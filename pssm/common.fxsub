@@ -1,5 +1,7 @@
-#define SHADOW_QUALITY 4
+#define SHADOW_QUALITY 3
 
+#define CasterAlphaThreshold 180
+#define RecieverAlphaThreshold 0.4
 
 #if SHADOW_QUALITY == 1
 #   define SHADOW_MAP_SIZE 2048

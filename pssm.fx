@@ -6,23 +6,11 @@ float Script : STANDARDSGLOBAL <
     string ScriptOrder = "preprocess";
 > = 0.8;
 
-texture2D mrt : RENDERCOLORTARGET <
-	float2 ViewportRatio = {1.0, 1.0};
-	string Format = "D3DFMT_A32B32G32R32F";
-	int MipLevel = 4;
->;
+
 texture2D mrt_Depth : RENDERDEPTHSTENCILTARGET <
     float2 ViewportRatio = {1.0, 1.0};
     string Format = "D24S8";
 >;
-sampler2D MRTSamp = sampler_state {
-    texture = <mrt>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = LINEAR;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
-};
 
 shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
@@ -164,10 +152,6 @@ float ClearDepth  = 1.0;
 
 technique MainTech <
     string Script = 
-		"RenderColorTarget0=mrt;"
-    	"RenderDepthStencilTarget=mrt_Depth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
         "ScriptExternal=Color;"
 		
 		"RenderColorTarget0=ScreenShadowWorkBuff;"
