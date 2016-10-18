@@ -1,4 +1,4 @@
-#include "PSSM\\common.fxsub"
+#include "headers\\environment.fxh"
 
 float Script : STANDARDSGLOBAL <
     string ScriptOutput = "color";
@@ -20,7 +20,7 @@ shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <
 
 texture ScreenShadowWorkBuff : RENDERCOLORTARGET <
     float2 ViewportRatio = {1.0, 1.0};
-    string Format = "G32R32F";
+    string Format = "R32F";
 >;
 sampler ScreenShadowWorkBuffSampler = sampler_state {
     texture = <ScreenShadowWorkBuff>;
@@ -34,15 +34,15 @@ sampler ScreenShadowWorkBuffSampler = sampler_state {
 texture ScreenShadowMap : OFFSCREENRENDERTARGET <
     string Description = "PSSM";
     float2 ViewPortRatio = {1.0, 1.0};
-    string Format = "G16R16F";
+    string Format = "A16B16G16R16F";
     float4 ClearColor = { 1, 0, 0, 0 };
     float ClearDepth = 1.0;
     int MipLevels = 1;
     string DefaultEffect =
         "self = hide;"
         "skybox*.* = hide;"
-        "*.pmx=PSSM\\object.fx;"
-        "*.pmd=PSSM\\object.fx;"
+        "*.pmx=headers\\object.fx;"
+        "*.pmd=headers\\object.fx;"
         "*.x=hide;";
 >;
 sampler ScreenShadowMapSampler = sampler_state {
@@ -65,8 +65,8 @@ shared texture PSSMDepth : OFFSCREENRENDERTARGET <
     string DefaultEffect =
         "self = hide;"
         "skybox*.* = hide;"
-        "*.pmx=PSSM\\depth.fx;"
-        "*.pmd=PSSM\\depth.fx;"
+        "*.pmx=headers\\depth.fx;"
+        "*.pmd=headers\\depth.fx;"
         "*.x=hide;";
 >;
 
@@ -141,7 +141,7 @@ float4 ShadowMapBlurPS(float2 coord : TEXCOORD0, uniform sampler2D source, unifo
         offset2 -= offset;
     }
 
-    return float4(sum.x / sum.y,center.y,0,1);
+    return float4(sum.x / sum.y,center.z,0,1);
 }
 
 

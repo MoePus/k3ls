@@ -8,6 +8,7 @@ struct VS_OUTPUT {
     float3 Normal   : TEXCOORD1;    // 法線
     float3 Eye      : TEXCOORD2;    // カメラとの相対位置
 	float4 Pos2		: TEXCOORD3;
+	float4 PosL		: TEXCOORD4;
 };
 
 
@@ -18,6 +19,7 @@ VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : T
     
     // カメラ視点のワールドビュー射影変換
     Out.Pos2 = Out.Pos = mul( Pos, WorldViewProjMatrix );
+	Out.PosL = mul( Pos, matLightViewProject );
 	Out.Eye = CameraPosition - mul( Pos, WorldMatrix );
     Out.Normal = Normal;
 	
@@ -56,11 +58,9 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 
 
 
-
 // ピクセルシェーダ
 float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap) : COLOR0
 {
-	translucency *= 1.5;
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
@@ -114,10 +114,20 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	
 	float3 aoColor = ao * AOmap;
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
-	float3 trans = translucency*CalcTranslucency(shadowMap.y)*irradiance*color;
+	
+	float3 trans;
+	if(translucency>0.01)
+	{
+		trans = translucency*CalcTranslucency(shadowMap.y/(1-translucency))*irradiance*color;
+	}
+	else
+	{
+		trans = 0;
+	}
+		
 
 	 
-	float3 diffuse = (color+trans)*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
+	float3 diffuse = color*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
 	float3 cSpec = lerp(0.04,reflectance * spa,metalness);
 	float3 specular = cSpec * BRDF(roughness,color,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
@@ -128,7 +138,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,roughness,IBLD,IBLS);
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambient =  Hemisphere + AmbientColor * ((DiffuseColor + trans) * IBLD * lerp(0.3679,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.63212,1,metalness); //TBD
+	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * lerp(0.3679,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.63212,1,metalness); //TBD
 	ambient *= aoColor;
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
@@ -137,7 +147,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 surfaceSpecular = 0.2f * varnishAlpha * (0.32 * length(IBLS) * AmbientBRDF_UE4(1.0.xxx,varnishRough,NoV) + BRDF(varnishRough,1,normal,lightNormal,viewNormal)*NL*LightAmbient);
 	
 	
-	float3 outColor = (diffuse + specular)*ShadowMapVal + ambient + selfLight + surfaceSpecular;
+	float3 outColor = (diffuse + specular)*ShadowMapVal + trans + ambient + selfLight + surfaceSpecular;
 	return float4(outColor,DiffuseColor.a);
 }
 

@@ -1,11 +1,4 @@
-#include "common.fxsub"
-
-
-float3 LightDirection : DIRECTION < string Object = "Light";>;
-static float4x4 matLightView = CreateLightViewMatrix(LightDirection);
-static float4x4 matLightViewProject = mul(matLightView, matLightProject);
-static float4x4 matLightProjectToCameraView = mul(matViewInverse, matLightView);
-static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);
+#include "environment.fxh"
 
 texture DiffuseMap: MATERIALTEXTURE;
 sampler DiffuseSamp = sampler_state

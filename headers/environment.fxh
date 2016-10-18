@@ -17,24 +17,47 @@
 #define SHADOW_MAP_OFFSET  (1.0 / SHADOW_MAP_SIZE)
 #define SELFSHADOW_COS_MAX 0.00872653549837393496488821397358 //cos 89.5 degree
 
-float3 CameraPosition  : POSITION  < string Object = "Camera"; >;
-float3 CameraDirection : DIRECTION < string Object = "Camera"; >;
-float4 MaterialDiffuse  : DIFFUSE  < string Object = "Geometry"; >;
-float4x4 matWorld              : WORLD;
-float4x4 matWorldInverse       : WORLDINVERSE;
-float4x4 matWorldView          : WORLDVIEW;
-float4x4 matWorldViewProject   : WORLDVIEWPROJECTION;
-float4x4 matView               : VIEW;
-float4x4 matViewInverse        : VIEWINVERSE;
-float4x4 matProject            : PROJECTION;
-float4x4 matProjectInverse     : PROJECTIONINVERSE;
-float4x4 matViewProject        : VIEWPROJECTION;
-float4x4 matViewProjectInverse : VIEWPROJECTIONINVERSE;
+
+// ¥Ñ¥é¥á©`¥¿ÐûÑÔ
 float2 ViewportSize : VIEWPORTPIXELSIZE;
 static float2 ViewportOffset  = (float2(0.5,0.5) / ViewportSize);
 static float2 ViewportOffset2 = (float2(1.0,1.0) / ViewportSize);
 static float2 ViewportAspect  = float2(1, ViewportSize.x / ViewportSize.y);
 uniform bool opadd;
+
+float3	CameraPosition		: POSITION  < string Object = "Camera"; >;
+float3	CameraDirection		: DIRECTION < string Object = "Camera"; >;
+float3	LightDirection		: DIRECTION < string Object = "Light"; >;
+float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
+static float3 LightAmbient = _LightAmbient * 4.;
+const float PI = 3.14159265359f;
+const float invPi = 0.31830988618;
+
+sampler MMDSamp0 : register(s0);
+sampler MMDSamp1 : register(s1);
+sampler MMDSamp2 : register(s2);
+
+// ×ù·¨‰ä“QÐÐÁÐ
+float4x4 WorldMatrix              : WORLD;
+float4x4 WorldMatrixInverse       : WORLDINVERSE;
+float4x4 WorldViewMatrix          : WORLDVIEW;
+float4x4 WorldViewProjectMatrix   : WORLDVIEWPROJECTION;
+float4x4 ViewMatrix               : VIEW;
+float4x4 ViewMatrixInverse        : VIEWINVERSE;
+float4x4 ProjectMatrix            : PROJECTION;
+float4x4 ProjectMatrixInverse     : PROJECTIONINVERSE;
+float4x4 ViewProjectMatrix        : VIEWPROJECTION;
+float4x4 ViewProjectMatrixInverse : VIEWPROJECTIONINVERSE;
+float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
+
+
+uniform float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
+uniform float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
+uniform float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
+uniform float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
+uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry"; >;
+uniform float4   MaterialToon      : TOONCOLOR;
+static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
 const float CascadeZMin = 5;
 const float CascadeZMax = 2000;
@@ -120,10 +143,10 @@ float CalculateSplitPosition(float i)
 
 float4 CreateFrustumFromProjection()
 {
-    float4 r = mul(float4( 1, 0, 1, 1), matProjectInverse);
-    float4 l = mul(float4(-1, 0, 1, 1), matProjectInverse);
-    float4 t = mul(float4( 0, 1, 1, 1), matProjectInverse);
-    float4 b = mul(float4( 0,-1, 1, 1), matProjectInverse);
+    float4 r = mul(float4( 1, 0, 1, 1), ProjectMatrixInverse);
+    float4 l = mul(float4(-1, 0, 1, 1), ProjectMatrixInverse);
+    float4 t = mul(float4( 0, 1, 1, 1), ProjectMatrixInverse);
+    float4 b = mul(float4( 0,-1, 1, 1), ProjectMatrixInverse);
     return float4(r.x / r.z, l.x / l.z, t.y / t.z, b.y / b.z);
 }
 
@@ -213,3 +236,8 @@ float CalcLight(float casterDepth, float receiverDepth, float rate)
 {
     return 1.0 - saturate((receiverDepth - casterDepth) * rate);
 }
+
+static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
+static float4x4 matLightViewProject = mul(matLightView, matLightProject);
+static float4x4 matLightProjectToCameraView = mul(ViewMatrixInverse, matLightView);
+static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);

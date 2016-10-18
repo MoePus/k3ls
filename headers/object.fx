@@ -1,12 +1,4 @@
-#include "common.fxsub"
-
-
-float3 LightDirection : DIRECTION < string Object = "Light"; >;
-
-static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
-static float4x4 matLightViewProject = mul(matLightView, matLightProject);
-static float4x4 matLightProjectToCameraView = mul(matViewInverse, matLightView);
-static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);
+#include "environment.fxh"
 
 texture DiffuseMap: MATERIALTEXTURE;
 sampler DiffuseMapSamp = sampler_state {
@@ -42,7 +34,7 @@ DrawObject_OUTPUT ShadowObjectVS(
 {
 	DrawObject_OUTPUT Out = (DrawObject_OUTPUT)0;
 
-	Out.PPos = Out.Pos = mul(Pos, matViewProject);
+	Out.PPos = Out.Pos = mul(Pos, ViewProjectMatrix);
 	Out.Normal = Normal;
 
 	float4 PPos = mul(Pos, matLightViewProject);
@@ -107,7 +99,7 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	shadow = lerp(1,shadow,max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold));
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
-	return float4(shadow, IN.PPos.z, 0, 1);
+	return float4(shadow, IN.PPos.z, abs(casterDepth - receiverDepth), 1);
 }
 
 
