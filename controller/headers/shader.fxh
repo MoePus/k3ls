@@ -120,7 +120,6 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 diffuse = (color+trans)*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
 	float3 cSpec = lerp(0.04,reflectance * spa,metalness);
-	//return float4(spa,1);
 	float3 specular = cSpec * BRDF(roughness,color,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
