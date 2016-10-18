@@ -138,13 +138,13 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,roughness,IBLD,IBLS);
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * lerp(0.3679,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.63212,1,metalness); //TBD
+	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * lerp(0.63212,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.3679,1,metalness); //TBD
 	ambient *= aoColor;
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;
 	
 	IBL(viewNormal,normal,varnishRough,IBLD,IBLS);
-	float3 surfaceSpecular = 0.2f * varnishAlpha * (0.32 * length(IBLS) * AmbientBRDF_UE4(1.0.xxx,varnishRough,NoV) + BRDF(varnishRough,1,normal,lightNormal,viewNormal)*NL*LightAmbient);
+	float3 surfaceSpecular = 0.2f * varnishAlpha * (0.32 * length(IBLS) * AmbientBRDF_UE4(1.0.xxx,varnishRough,NoV));
 	
 	
 	float3 outColor = (diffuse + specular)*ShadowMapVal + trans + ambient + selfLight + surfaceSpecular;
