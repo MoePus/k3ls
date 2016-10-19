@@ -141,7 +141,7 @@ float4 ShadowMapBlurPS(float2 coord : TEXCOORD0, uniform sampler2D source, unifo
         offset2 -= offset;
     }
 
-    return float4(sum.x / sum.y,center.z,0,1);
+    return float4(sum.x / sum.y, tex2D(ScreenShadowMapSampler, coord).z,0,1);
 }
 
 

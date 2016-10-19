@@ -31,7 +31,7 @@ RGB：法线XYZ，A：遮蔽贴图Y
 
 已移除ExcellentShadow。
 
-K3LS beta v0.8.2 MoePus 2016.10.18
+K3LS beta v0.8.3 MoePus 2016.10.18
 
 
 
@@ -50,6 +50,7 @@ MikuMikuEffect Reference
 
 
 TODO:
+提高HDR性能
 SSDO ×
 PSSM √
 Forward -> Deferred
