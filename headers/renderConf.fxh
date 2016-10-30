@@ -1,7 +1,7 @@
 float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
-static float3 AmbientColor  = MaterialToon*MaterialEmmisive*AmbLightPower*0.1;
+static float3 AmbientColor  = AmbLightPower*0.1;
 static float3 AmbLightColor0 = saturate(AmbColorXYZ*0.01); 
 static float3 AmbLightColor1 = saturate(AmbColorRxyz*1.8/3.141592); 
 

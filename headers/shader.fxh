@@ -80,6 +80,10 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 		{
 			normal = 2.0f * t - 1;
 			normal.rg *= ((spaornormal-0.5)*30);
+			
+			if(normal.b<0)
+				normal.b = 1.0f;
+			
 			normal = normalize(normal);
 			spa = (1-specularStrength).xxx;
 		}
