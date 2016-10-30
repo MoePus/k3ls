@@ -31,7 +31,7 @@ RGB£º·¨ÏßXYZ£¬A£ºÕÚ±ÎÌùÍ¼Y
 
 ÒÑÒÆ³ıExcellentShadow¡£
 
-K3LS beta v0.8.3 MoePus 2016.10.18
+K3LS beta v0.9.0 MoePus 2016.10.30
 
 
 

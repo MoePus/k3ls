@@ -118,7 +118,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 trans;
 	if(translucency>0.01)
 	{
-		trans = translucency*CalcTranslucency(shadowMap.y/(1-translucency))*irradiance*color;
+		trans = CalcTranslucency(shadowMap.y/translucency)*irradiance*color;
 	}
 	else
 	{
@@ -129,7 +129,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	 
 	float3 diffuse = color*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
-	float3 cSpec = lerp(0.04,reflectance * spa,metalness);
+	float3 cSpec = lerp(0.04,spa,metalness);
 	float3 specular = cSpec * BRDF(roughness,color,normal,lightNormal,viewNormal)*NL*LightAmbient*DiffuseColor.a;
 	
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
@@ -156,164 +156,29 @@ float4 G_PS(VS_OUTPUT IN) : COLOR0
 	return float4(SSS.xxx,1);
 }
 
-//-----------------------------------------------------------------------------------------------------
-// 標準エミュレート
-// オブジェクト描画用テクニック（アクセサリ用）
-// 不要なものは削除可
-technique MainTec0 < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object"; bool UseTexture = false; bool UseSphereMap = false;> {
-    pass DrawObject {  
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(false,false);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
+#define GENTec(TecName,MMDPassValue,UseTextureValue,UseSphereMapValue) \
+technique TecName < \
+	string Script =  \
+	        "RenderColorTarget0=;" \
+    	    "RenderDepthStencilTarget=;" \
+    	    "Pass=DrawObject;" \
+			"RenderColorTarget0=K3LS_GBuffer_01;" \
+			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;" \
+			"Pass=G;"; \
+	string MMDPass = MMDPassValue; bool UseTexture = UseTextureValue; bool UseSphereMap = UseSphereMapValue;> { \
+    pass DrawObject {  \
+		VertexShader = compile vs_3_0 Basic_VS(); \
+        PixelShader  = compile ps_3_0 Basic_PS(UseTextureValue,UseSphereMapValue);  } \
+	pass G { \
+		VertexShader = compile vs_3_0 Basic_VS(); \
+        PixelShader  = compile ps_3_0 G_PS(); }}
 
-technique MainTec1 < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object"; bool UseTexture = true; bool UseSphereMap = false; > {
-    pass DrawObject {      
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(true,false);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
+GENTec(MainTec0,"object",false,false)
+GENTec(MainTec1,"object",true,false)
+GENTec(MainTec2,"object",false,true)
+GENTec(MainTec3,"object",true,true)
 
-technique MainTec2 < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object"; bool UseTexture = false; bool UseSphereMap = true;> {
-    pass DrawObject { 
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(false,true);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-technique MainTec3 < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object"; bool UseTexture = true; bool UseSphereMap = true; > {
-    pass DrawObject {
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(true,true);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-
-//-----------------------------------------------------------------------------------------------------
-// 標準エミュレート
-// オブジェクト描画用テクニック（アクセサリ用）
-technique MainTecBS0  < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object_ss"; bool UseTexture = false; bool UseSphereMap = false;> {
-    pass DrawObject {  
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(false,false);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-technique MainTecBS1  < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object_ss"; bool UseTexture = true; bool UseSphereMap = false;> {
-    pass DrawObject {  
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(true,false);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-technique MainTecBS2  < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object_ss"; bool UseTexture = false; bool UseSphereMap = true;> {
-    pass DrawObject {       
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(false,true);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-technique MainTecBS3  < 
-	string Script = 
-	        "RenderColorTarget0=;"
-    	    "RenderDepthStencilTarget=;"
-    	    "Pass=DrawObject;"
-			"RenderColorTarget0=K3LS_GBuffer_01;"
-			"RenderDepthStencilTarget=K3LS_GBuffer_01_Depth;"
-			"Pass=G;";
-	string MMDPass = "object_ss"; bool UseTexture = true; bool UseSphereMap = true;> {
-    pass DrawObject {       
-        VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 Basic_PS(true,true);
-    }
-	pass G {
-	    VertexShader = compile vs_3_0 Basic_VS();
-        PixelShader  = compile ps_3_0 G_PS();
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
+GENTec(MainTecBS0,"object_ss",false,false)
+GENTec(MainTecBS1,"object_ss",true,false)
+GENTec(MainTecBS2,"object_ss",false,true)
+GENTec(MainTecBS3,"object_ss",true,true)

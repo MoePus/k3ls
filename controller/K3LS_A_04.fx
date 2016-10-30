@@ -3,8 +3,6 @@
 #include "..\\headers\\BRDF.fxh"
 
 float roughness : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "roughness"; >;
-float reflectance : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "reflectance"; >;
-float special : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "specialeffect"; >;
 float spaScale : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "spaScale"; >;
 float spaornormal : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "spa<->normal"; >;
 float specularStrength : CONTROLOBJECT < string name = "K3LS_A_con_04.pmx"; string item = "specularStrength"; >;

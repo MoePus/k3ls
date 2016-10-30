@@ -86,21 +86,6 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
     return Out;
 }
 
-float4 PS_COPY(float2 Tex: TEXCOORD0) : COLOR
-{
-	float3 color = tex2Dlod(ScreenShadowMapSampler,float4(Tex,0,0)).xxx;
-	return float4(color,1);
-
-}
-
-
-float hash12(float2 p)
-{
-	float3 p3  = frac(p.xyx * float3(.1031,.11369,.13787));
-    p3 += dot(p3, p3.yzx + 19.19);
-    return frac((p3.x + p3.y) * p3.z);
-}
-
 float BilateralWeight(float r, float depth, float center_d, float sharpness)
 {
     const float blurSigma = 6 * depth;

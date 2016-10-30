@@ -29,7 +29,7 @@ float3	CameraPosition		: POSITION  < string Object = "Camera"; >;
 float3	CameraDirection		: DIRECTION < string Object = "Camera"; >;
 float3	LightDirection		: DIRECTION < string Object = "Light"; >;
 float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
-static float3 LightAmbient = _LightAmbient * 4.;
+static float3 LightAmbient = _LightAmbient * 2;
 const float PI = 3.14159265359f;
 const float invPi = 0.31830988618;
 

@@ -23,7 +23,7 @@ sampler2D MRTSamp = sampler_state {
     texture = <mrt>;
     MinFilter = LINEAR;
     MagFilter = LINEAR;
-    MipFilter = LINEAR;
+    MipFilter = POINT;
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
@@ -188,7 +188,10 @@ float4 ACESToneMapping(float2 Tex: TEXCOORD0) : COLOR
 	
 	color = AF(color * adapted_lum_dest);
 	
-	return float4(HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor,1);
+	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
+	outColor = pow(outColor,1.0f/2.2f);
+	
+	return float4(outColor,1);
 }
 
 float elapsed_time : ELAPSEDTIME;
@@ -217,65 +220,31 @@ float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 }
 
+#define GENBlurPS(PS_name,SAMP_name,step_mod) \
+float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
+    const float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 }; \
+    const float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 }; \
+	float SSS_strength = tex2D(KG01SAMP,Tex).r * 3.5f; \
+	float2 step = float2(0.0,0.0); \
+	step_mod = (1 + BlurIndex)*SSS_strength; \
+	float4 colorM = tex2D(SAMP_name,Tex); \
+    float depthM = tex2D(SSSDepthMapSamp,Tex).r; \
+    float4 colorBlurred = colorM; \
+    colorBlurred.rgb *= 0.382; \
+	float correction = 100*(1-sss_correction/10); \
+    float2 finalStep = colorM.a * step / depthM; \
+	[unroll] \
+    for (int i = 0; i < 6; i++) { \
+        float2 offset = Tex + o[i] * finalStep / ViewportSize; \
+        float3 color = tex2D(SAMP_name,offset).rgb; \
+        float depth = tex2D(SSSDepthMapSamp,offset).r; \
+        float s = min(0.0125 * correction * abs(depthM - depth), 1.0); \
+        color = lerp(color, colorM.rgb, s); \
+        colorBlurred.rgb += w[i] * color; } \
+    return colorBlurred; }
 
-
-float4 Blur_PS(float2 Tex: TEXCOORD0,uniform bool blurX) : COLOR
-{
-	// Gaussian weights for the six samples around the current pixel:
-    //   -3 -2 -1 +1 +2 +3
-    const float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 };
-    const float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 };
-
-	float2 step = float2(0.0,0.0);
-	// Calculate the step that we will use to fetch the surrounding pixels,
-    // where "step" is:
-    //     step = sssStrength * gaussianWidth * pixelSize * dir
-    // The closer the pixel, the stronger the effect needs to be, hence
-    // the factor 1.0 / depthM.
-	
-	sampler2D Samp;
-	float SSS_strength = tex2D(KG01SAMP,Tex).r * 3.5f;
-	if(blurX)
-	{
-		step.x = (1 + BlurIndex)*SSS_strength;
-		Samp = SSS_2XSamp;
-	}else
-	{
-		step.y = (1 + BlurIndex)*SSS_strength;
-		Samp = SSS_2YSamp;
-	}
-	// Fetch color and linear depth for current pixel:
-	float4 colorM = tex2D(Samp,Tex);
-    float depthM = tex2D(SSSDepthMapSamp,Tex).r;
-
-    // Accumulate center sample, multiplying it with its gaussian weight:
-    float4 colorBlurred = colorM;
-    colorBlurred.rgb *= 0.382;
-
-	float correction = 100*(1-sss_correction/10);
-    float2 finalStep = colorM.a * step / depthM;
-
-    // Accumulate the other samples:
-	[unroll]
-    for (int i = 0; i < 6; i++) {
-        // Fetch color and depth for current sample:
-        float2 offset = Tex + o[i] * finalStep / ViewportSize;
-        float3 color = tex2D(Samp,offset).rgb;
-        float depth = tex2D(SSSDepthMapSamp,offset).r;
-
-        // If the difference in depth is huge, we lerp color back to "colorM":
-        float s = min(0.0125 * correction * abs(depthM - depth), 1.0);
-        color = lerp(color, colorM.rgb, s);
-
-        // Accumulate:
-        colorBlurred.rgb += w[i] * color;
-    }
-
-    // The result will be alpha blended with current buffer by using specific
-    // RGB weights. For more details, I refer you to the GPU Pro chapter :)
-    return colorBlurred;
-}
-
+GENBlurPS(Blur_PSX,SSS_2XSamp,step.x)
+GENBlurPS(Blur_PSY,SSS_2YSamp,step.y)
 
 float4 Blend_PS(float2 Tex: TEXCOORD0 ) : COLOR
 {
@@ -390,7 +359,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 Blur_PS(true);
+		PixelShader  = compile ps_3_0 Blur_PSX();
     }
 	pass BLURY < string Script= "Draw=Buffer;"; > 
 	{
@@ -398,7 +367,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 Blur_PS(false);
+		PixelShader  = compile ps_3_0 Blur_PSY();
     }
 	pass Blend < string Script= "Draw=Buffer;"; > 
 	{
