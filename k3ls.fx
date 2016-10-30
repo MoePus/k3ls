@@ -175,6 +175,12 @@ float EyeAdaption(float lum)
 	return lerp(0.04f, 0.302f, lum);
 }
 
+float3 linear_to_srgb(float3 rgb)
+{
+	const float ALPHA = 0.055f;
+	return rgb < 0.0031308f ? 12.92f * rgb : (1 + ALPHA) * pow(rgb, 1 / 2.4f) - ALPHA;
+}
+
 float4 ACESToneMapping(float2 Tex: TEXCOORD0) : COLOR
 {
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
@@ -189,9 +195,9 @@ float4 ACESToneMapping(float2 Tex: TEXCOORD0) : COLOR
 	color = AF(color * adapted_lum_dest);
 	
 	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
-	outColor = pow(outColor,1.0f/2.2f);
+	//outColor = pow(outColor,1.0f/2.2f);
 	
-	return float4(outColor,1);
+	return float4(linear_to_srgb(outColor),1);
 }
 
 float elapsed_time : ELAPSEDTIME;
