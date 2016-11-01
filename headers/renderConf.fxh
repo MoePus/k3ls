@@ -1,7 +1,7 @@
 float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
-static float3 AmbientColor  = AmbLightPower*0.1;
+static float3 AmbientColor  = AmbLightPower*0.12;
 static float3 AmbLightColor0 = saturate(AmbColorXYZ*0.01); 
 static float3 AmbLightColor1 = saturate(AmbColorRxyz*1.8/3.141592); 
 
@@ -30,22 +30,15 @@ sampler NorTexSampler = sampler_state {
     ADDRESSV = WRAP;
 };
 
-shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <
-    float2 ViewPortRatio = {1,1};
-    int MipLevels = 1;
-    string Format = "D3DFMT_R16F";
->;
+shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET;
 sampler2D ScreenShadowMapProcessedSamp = sampler_state {
     texture = <ScreenShadowMapProcessed>;
     MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = NONE;
     AddressU  = CLAMP; AddressV = CLAMP;
 };
 
-shared texture2D SSAO_Tex3 : RENDERCOLORTARGET <
-    float2 ViewPortRatio = {1.0, 1.0};
-    int MipLevels = 0;
-    string Format = "D3DFMT_R16F";
->;
+
+shared texture2D SSAO_Tex3 : RENDERCOLORTARGET;
 sampler2D SSAOSamp = sampler_state {
     texture = <SSAO_Tex3>;
     MinFilter = LINEAR;
@@ -81,7 +74,6 @@ sampler IBLSpecularSampler = sampler_state {
     ADDRESSV  = CLAMP;
 };
 
-
 float2 computeSphereCoord(float3 normal)
 {
     float2 coord = float2(1 - (atan2(normal.x, normal.z) * invPi * 0.5f + 0.5f), acos(normal.y) * invPi);
@@ -94,8 +86,8 @@ void IBL(float3 viewNormal, float3 normal,float roughness, out float3 diffuse, o
 	float mipLayer = lerp(0, 6, roughness);
 
 	float2 coord = computeSphereCoord(R);
-	diffuse = tex2D(IBLDiffuseSampler, coord);
-    specular = tex2Dlod(IBLSpecularSampler, float4(coord, 0, mipLayer));
+	diffuse = srgb2linear(tex2D(IBLDiffuseSampler, coord).xyz);
+    specular = srgb2linear(tex2Dlod(IBLSpecularSampler, float4(coord, 0, mipLayer)).xyz);
 }
 
 

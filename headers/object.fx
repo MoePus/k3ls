@@ -53,11 +53,16 @@ DrawObject_OUTPUT ShadowObjectVS(
 	return Out;
 }
 
+float transmission(float c,float r)
+{
+	return saturate(abs((c-r)*(LightZMax - LightZMin)));
+}
+
 float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 {
 	float alpha = MaterialDiffuse.a;
 	if (useTexture) alpha *= tex2D(DiffuseMapSamp, IN.Tex.xy).a;
-	//clip(alpha - 0.01);
+	clip(alpha - 0.01);
 
 	float4 lightPPos0 = CalcCascadePPos(IN.LightPPos01.xy, float2(0, 0), 0);
 	float4 lightPPos1 = CalcCascadePPos(IN.LightPPos01.zw, float2(1, 0), 1);
@@ -82,24 +87,35 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	float s = 1.5 / SHADOW_MAP_SIZE;	
 	float sdrate = 30000.0 / 4.0 - 0.05;
 
+	float fCasterDepth[9] = {
+	casterDepth,
+	tex2D(PSSMsamp, texCoord0.xy + float2( s, s)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2(-s, s)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2( s,-s)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2(-s,-s)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2( s, 0)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2(-s, 0)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2( 0, s)).x,
+	tex2D(PSSMsamp, texCoord0.xy + float2( 0,-s)).x
+	};
+	
 	float shadow = 0;
-	shadow += CalcLight(casterDepth, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( s, s)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2(-s, s)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( s,-s)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2(-s,-s)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( s, 0)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2(-s, 0)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( 0, s)).x, receiverDepth, sdrate);
-	shadow += CalcLight(tex2D(PSSMsamp, texCoord0.xy + float2( 0,-s)).x, receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[0], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[1], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[2], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[3], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[4], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[5], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[6], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[7], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[8], receiverDepth, sdrate);
+
 	shadow /= 9;
 	
-
-
 	shadow = lerp(1,shadow,max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold));
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
-	return float4(shadow, IN.PPos.z, abs(casterDepth - receiverDepth), 1);
+	return float4(shadow, IN.PPos.z, transmission(casterDepth,IN.Tex.w), 1);
 }
 
 

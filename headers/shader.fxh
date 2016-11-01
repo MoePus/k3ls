@@ -120,9 +120,9 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
 	
 	float3 trans;
-	if(translucency>0.01)
+	if(translucency>0.005)
 	{
-		trans = CalcTranslucency(shadowMap.y/translucency)*irradiance*color;
+		trans = CalcTranslucency((1-shadowMap.x)/translucency)*irradiance*color; //BUG
 	}
 	else
 	{
@@ -130,7 +130,6 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	}
 		
 
-	 
 	float3 diffuse = color*NL*invPi*Diffuse(roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-metalness);
 	
 	float3 cSpec = lerp(0.04,spa,metalness);
@@ -142,7 +141,7 @@ float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool us
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,roughness,IBLD,IBLS);
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambient =  Hemisphere + AmbientColor * (DiffuseColor * IBLD * lerp(0.63212,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.3679,1,metalness); //TBD
+	float3 ambient =  color * Hemisphere + AmbientColor * (color * IBLD * lerp(0.63212,0,metalness) + IBLS * AmbientBRDF_UE4(spa*color,sqrt(roughness),NoV)) * lerp(0.3679,1,metalness); //TBD
 	ambient *= aoColor;
 	
 	float3 selfLight = (exp(3.68888f * selfLighting) - 1) * color;

@@ -15,7 +15,7 @@ texture2D mrt_Depth : RENDERDEPTHSTENCILTARGET <
 shared texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
     int MipLevels = 1;
-    string Format = "G32R32F";
+    string Format = "G16R16F";
 >;
 
 texture ScreenShadowWorkBuff : RENDERCOLORTARGET <
@@ -100,7 +100,8 @@ float BilateralWeight(float r, float depth, float center_d, float sharpness)
 float4 ShadowMapBlurPS(float2 coord : TEXCOORD0, uniform sampler2D source, uniform float2 offset) : COLOR
 {
     float4 center = tex2D(source, coord);
-    center.y = abs(center.y);
+	
+    float centerDepth = abs(tex2D(ScreenShadowMapSampler, coord).y);
 
     float2 sum = float2(center.x, 1);
 
@@ -110,11 +111,13 @@ float4 ShadowMapBlurPS(float2 coord : TEXCOORD0, uniform sampler2D source, unifo
     [unroll]
     for(int r = 1; r < SHADOW_BLUR_COUNT; r++)
     {        
-        float2 shadow1 = tex2D(source, offset1).xy;
-        float2 shadow2 = tex2D(source, offset2).xy;
-        
-        float bilateralWeight1 = BilateralWeight(r, abs(shadow1.y), center.y, 3);
-        float bilateralWeight2 = BilateralWeight(r, abs(shadow2.y), center.y, 3);
+        float shadow1 = tex2D(source, offset1).x;
+		float s1Depth = abs(tex2D(ScreenShadowMapSampler, offset1).y);
+        float shadow2 = tex2D(source, offset2).x;
+        float s2Depth = abs(tex2D(ScreenShadowMapSampler, offset2).y);
+		
+        float bilateralWeight1 = BilateralWeight(r, s1Depth, centerDepth, 3);
+        float bilateralWeight2 = BilateralWeight(r, s2Depth, centerDepth, 3);
         
         sum.x += shadow1.x * bilateralWeight1;
         sum.x += shadow2.x * bilateralWeight2;

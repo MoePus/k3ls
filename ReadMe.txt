@@ -46,7 +46,7 @@ Skybox.pmx 天空盒，自行替换hdr贴图，可不要
 已移除ExcellentShadow。
 已移除Ambient强度对于模型Toon与Emmisive的依赖。
 
-K3LS beta v0.9.2 MoePus 2016.10.30
+K3LS beta v0.10.0 MoePus 2016.11.1
 
 
 

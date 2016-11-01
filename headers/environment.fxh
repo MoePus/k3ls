@@ -1,4 +1,4 @@
-#define SHADOW_QUALITY 3
+#define SHADOW_QUALITY 4
 
 #define CasterAlphaThreshold 180
 #define RecieverAlphaThreshold 0.4
@@ -8,8 +8,10 @@
 #elif SHADOW_QUALITY == 2
 #   define SHADOW_MAP_SIZE 4096
 #elif SHADOW_QUALITY == 3
-#   define SHADOW_MAP_SIZE 8192
+#   define SHADOW_MAP_SIZE 6144
 #elif SHADOW_QUALITY == 4
+#   define SHADOW_MAP_SIZE 8192
+#else
 #   define SHADOW_MAP_SIZE 10000
 #endif
 
@@ -64,7 +66,7 @@ const float CascadeZMax = 2000;
 const float CascadeScale = 0.5;
 
 const float LightZMin = 1;
-const float LightZMax = 4000.0;
+const float LightZMax = 3600.0;
 const float LightDistance = 1000;
 
 const float LightPlaneNear = 0.1;
@@ -137,7 +139,7 @@ static float4x4 matLightProject = {
 float CalculateSplitPosition(float i)
 {
     float p0 = CascadeZMin + ((CascadeZMax - CascadeZMin) / CascadeZMin) * (i / 4.0);
-    float p1 = CascadeZMin * pow(CascadeZMax / CascadeZMin, i / 4.0);
+    float p1 = CascadeZMin * pow(abs(CascadeZMax / CascadeZMin), i / 4.0);
     return p0 * (1.0 - CascadeScale) + p1 * CascadeScale;
 }
 
@@ -241,3 +243,10 @@ static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
 static float4x4 matLightViewProject = mul(matLightView, matLightProject);
 static float4x4 matLightProjectToCameraView = mul(ViewMatrixInverse, matLightView);
 static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);
+
+float3 srgb2linear(float3 rgb)
+{
+	const float ALPHA = 0.055f;
+    return rgb < 0.0404482f ? rgb / 12.92f : pow((rgb + ALPHA) / (1 + ALPHA), 2.4f);
+}
+
