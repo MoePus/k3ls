@@ -11,13 +11,13 @@ inline float3 D_GGX(float roughness,float3 normal,float3 halfVector)
 
 inline float3 F_UE4(float reflectance,float3 viewNormal,float3 halfVector)
 {
-	float e_n = dot(viewNormal, halfVector);
+	float e_n = saturate(dot(viewNormal, halfVector));
 	return  reflectance + (1 - reflectance) * exp2(-(5.55473f * e_n + 6.98316f) * e_n);
 }
 
 inline float3 F_UE4(float3 f0,float3 viewNormal,float3 halfVector)
 {
-	float e_n = dot(viewNormal, halfVector);
+	float e_n = saturate(dot(viewNormal, halfVector));
 	return  f0 + (1 - f0) * exp2(-(5.55473f * e_n + 6.98316f) * e_n);
 }
 
@@ -57,7 +57,7 @@ inline float pow5(float v)
 
 inline float Diffuse(float roughness,float3 normal,float3 lightNormal,float3 viewNormal)
 {
-	float NV = saturate(dot(normal,viewNormal));
+	float NV = abs(dot(normal,viewNormal)) + 0.00001;
 	float NL = saturate(dot(lightNormal,normal));
 	float3 halfVector = normalize( viewNormal + lightNormal );
 	float VH = saturate(dot(viewNormal, halfVector));
