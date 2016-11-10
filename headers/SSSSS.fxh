@@ -8,6 +8,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
 	float SSS_strength = tex2D(specularSamp,Tex).w * 3.5f; \
 	float2 step = float2(0.0,0.0); \
 	step_mod = (1 + BlurIndex)*SSS_strength; \
+	step *= 1600*ViewportOffset2; \
 	float4 colorM = tex2D(SAMP_name,Tex); \
     float depthM = tex2D(DepthGbufferSamp,Tex).r; \
     float4 colorBlurred = colorM; \

@@ -17,7 +17,7 @@ sampler IBLDiffuseSampler = sampler_state {
 
 texture IBLSpecularTexture <
     string ResourceName = "skybox\\skyspec.dds"; 
-	int MipLevels = 6;
+	int MipLevels = 7;
 >;
 sampler IBLSpecularSampler = sampler_state {
     texture = <IBLSpecularTexture>;
@@ -28,10 +28,39 @@ sampler IBLSpecularSampler = sampler_state {
     ADDRESSV  = CLAMP;
 };
 
-float3 EnvironmentReflect(float3 normal, float3 view)
+float3x3 makeRotate(float eulerX, float eulerY, float eulerZ)
 {
-    return reflect(-view, normal);
+    float sj, cj, si, ci, sh, ch;
+
+    sincos(eulerX, si, ci);
+    sincos(eulerY, sj, cj);
+    sincos(eulerZ, sh, ch);
+
+    float cc = ci * ch;
+    float cs = ci * sh;
+    float sc = si * ch;
+    float ss = si * sh;
+
+    float a1 = cj * ch;
+    float a2 = sj * sc - cs;
+    float a3 = sj * cc + ss;
+
+    float b1 = cj * sh;
+    float b2 = sj * ss + cc;
+    float b3 = sj * cs - sc;
+
+    float c1 = -sj;
+    float c2 = cj * si;
+    float c3 = cj * ci;
+    
+    float3x3 rotate;
+    rotate[0] = float3(a1, a2, a3);
+    rotate[1] = float3(b1, b2, b3);
+    rotate[2] = float3(c1, c2, c3);
+    
+    return rotate;
 }
+static float3x3 rotate = makeRotate(0, 0, 0);
 
 float2 computeSphereCoord(float3 normal)
 {
@@ -45,25 +74,24 @@ float HorizonOcclusion(float3 N, float3 R)
     return factor * factor;
 }
 
-void IBL(float3 viewNormal, float3 normal,float roughness, out float3 diffuse, out float3 specular)
+void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out float3 specular)
 {
-    float3 worldNormal = mul(normal, (float3x3)ViewInverse);
-    float3 worldReflect = EnvironmentReflect(worldNormal, viewNormal);
+    float3 worldReflect = reflect(-view, normal);
     
-    float mipLayer = 6*roughness;
+    float mipLayer = 7*roughness;
 
-    float3 R = worldReflect;
-    float3 N = worldNormal;
+    float3 R = mul(rotate, worldReflect);
+    float3 N = mul(rotate, normal);
 
     float4 prefilteredDiffuse = tex2D(IBLDiffuseSampler, computeSphereCoord(N));
     float4 prefilteredSpeculr = tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer));
     float4 prefilteredTransmittance = tex2D(IBLDiffuseSampler, computeSphereCoord(-N));
 
-    prefilteredDiffuse.rgb = srgb2linear(prefilteredDiffuse.rgb);
-    prefilteredSpeculr.rgb = srgb2linear(prefilteredSpeculr.rgb);
-    prefilteredTransmittance.rgb = srgb2linear(prefilteredTransmittance.rgb);
+    prefilteredDiffuse.rgb = prefilteredDiffuse.rgb;
+    prefilteredSpeculr.rgb = prefilteredSpeculr.rgb;
+    //prefilteredTransmittance.rgb = srgb2linear(prefilteredTransmittance.rgb);
 
-    prefilteredSpeculr *= HorizonOcclusion(worldNormal, worldReflect);
+    prefilteredSpeculr *= HorizonOcclusion(normal, view);
 
     diffuse = prefilteredDiffuse.rgb;
     //diffuse += prefilteredTransmittance.rgb * material.transmittance * (1 + mEnvSSSLightP * 5 - mEnvSSSLightM);

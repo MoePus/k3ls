@@ -14,6 +14,7 @@ float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; 
 float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 float2 ViewportSize : VIEWPORTPIXELSIZE;
 static float2 ViewportOffset = (float2(0.5,0.5)/ViewportSize);
+static float2 ViewportOffset2 = ViewportOffset * 2;
 float3   CameraPosition    : POSITION  < string Object = "Camera"; >;
 float3   LightDirection    : DIRECTION < string Object = "Light"; >;
 float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
@@ -121,7 +122,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
 	
-	float3 viewNormal = normalize(CameraPosition - mul(pos,(float3x3)ViewInverse));
+	float3 viewNormal = normalize(CameraPosition - mul(pos,ViewInverse));
 	float3 lightNormal = normalize(-LightDirection);
 	
 	float NL = saturate(dot(lightNormal,normal));
@@ -139,11 +140,11 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 Hemisphere = lerp(AmbLightColor0.xyz, AmbLightColor1.xyz, SdN*SdN);
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,cp.roughness,IBLD,IBLS);
+	
 	float NoV = saturate(dot(normal,viewNormal));
 	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212,0,cp.metalness);
-	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa,sqrt(cp.roughness),NoV) * lerp(0.3679,1,cp.metalness); //TBD
-	
-	
+	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa*albedo,cp.roughness,NoV) * lerp(0.3679,1,cp.metalness); //TBD
+		
 	odiff = float4(albedo.a*(ShadowMapVal*diffuse+ao*ambientDiffuse) + (1-albedo.a)*sky.xyz,albedo.a);
 	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular),cp.SSS);
 	float3 outColor = odiff.xyz+ospec.xyz;
@@ -248,7 +249,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 ShadowMapBlurAxBxToTxy_PS(ScreenShadowMapSampler,AOWorkMapSampler,float2(2*ViewportOffset.x, 0.0f));
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxBxToTxy_PS(ScreenShadowMapSampler,AOWorkMapSampler,float2(ViewportOffset2.x, 0.0f));
     }
 	
 	pass PSSMBilateralBlurY < string Script= "Draw=Buffer;"; > {
@@ -256,7 +257,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(BlurWorkBuffSampler,float2(0.0f, 2*ViewportOffset.y));
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(BlurWorkBuffSampler,float2(0.0f, ViewportOffset2.y));
     }
 
 	

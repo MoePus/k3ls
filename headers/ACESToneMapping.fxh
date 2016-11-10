@@ -15,6 +15,7 @@ sampler2D lumSamp = sampler_state {
 texture2D lumHalfTexture : RENDERCOLORTARGET <
 	int Width = halfPixel;
 	int Height = halfPixel;
+	int MipLevel = 1;
 	string Format = "R16F";
 >;
 sampler2D lumHalfSamp = sampler_state {
@@ -30,7 +31,7 @@ texture2D lumHalfDepth : RENDERDEPTHSTENCILTARGET <
 	int Height = halfPixel;
     string Format = "D24S8";
 >;
-#undef halfPixel
+
 texture2D adapted_lum: RENDERCOLORTARGET <//K3LS_GBuffer_04_roughness&reflectance&effect&posw
     int Width = 1;
 	int Height = 1;
@@ -58,12 +59,21 @@ float CalcAdaptedLum(float adapted_lum, float current_lum)
 
 float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 {
-	float lum = tex2Dlod(lumHalfSamp,float4(Tex,0,0)).x;
-	
+	const float step = 2.0 / halfPixel;
+	float lum = tex2Dlod(lumHalfSamp,float4(ViewportOffset,0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step),0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*2,0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*3,0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*4,0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step*3,step),0,1)).x;
+	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step*3),0,1)).x;
+	lum/=4;
 	lum = exp(lum);
 	lum = CalcAdaptedLum(adaptedLum[0][0].r,lum);
 	return float4(lum.xxx,1);
 }
+
+#undef halfPixel
 
 float EyeAdaption(float lum)
 {
