@@ -113,7 +113,7 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 
 	shadow /= 9;
 	
-	shadow = lerp(1,shadow,max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold));
+	shadow = shadow*max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold);
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
 	return float4(shadow, IN.PPos.z, transmission(casterDepth,IN.Tex.w), 1);

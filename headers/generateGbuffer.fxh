@@ -134,9 +134,9 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	
 	
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id,0,alpha);
-	gbuffer.spa = float4(spa,alpha);
-	gbuffer.Normal = float4(normal,alpha);
+	gbuffer.depth = float4(IN.oPos.w,_id,0,1);
+	gbuffer.spa = float4(spa,1);
+	gbuffer.Normal = float4(normal,1);
 	return;
 }
 

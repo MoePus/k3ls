@@ -69,39 +69,27 @@ sampler2D specularSamp = sampler_state {
     AddressV = CLAMP;
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#include "pssm\\pssm.fxh"
-///////////////////////////////////////////////////////////////////////////////////////////////
-#include "headers\\math.fxh"
-#include "headers\\BRDF.fxh"
-#include "headers\\IBL.fxh"
-
-#include "headers\\getControllerParams.fxh"
-#include "headers\\GbufferTextures.fxh"
-#include "headers\\GbufferSamplers.fxh"
-#include "headers\\GbufferClear.fxh"
-
-#include "headers\\SSSSS.fxh"
-#include "headers\\ACESToneMapping.fxh"
-///////////////////////////////////////////////////////////////////////////////////////////////
-texture2D lumTexture : RENDERCOLORTARGET <
-	float2 ViewportRatio = {1.0, 1.0};
-	string Format = "R16F";
->;
-sampler2D lumSamp = sampler_state {
-    texture = <lumTexture>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
-};
-///////////////////////////////////////////////////////////////////////////////////////////////
-
 struct POST_OUTPUT {
     float4 Pos      : POSITION;   
 	float2 Tex	    : TEXCOORD0;	
 };
-
+///////////////////////////////////////////////////////////////////////////////////////////////
+#include "headers\\math.fxh"
+#include "headers\\BRDF.fxh"
+#include "headers\\IBL.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
+#include "headers\\getControllerParams.fxh"
+#include "headers\\GbufferTextures.fxh"
+#include "headers\\GbufferSamplers.fxh"
+#include "headers\\GbufferClear.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
+#include "headers\\SSSSS.fxh"
+#include "headers\\ACESToneMapping.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
+#include "pssm\\pssm.fxh"
+#include "ssdo\\ssdo.fxh"
+#include "headers\\blur.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
 POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
 {
     POST_OUTPUT Out = (POST_OUTPUT)0;
@@ -128,8 +116,10 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float id = linearDepthXid.y;
 	float3 pos = coord2WorldViewPos(Tex,linearDepth);
 	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
-	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
+	
+	float2 shadowMap = tex2D(BlurWorkBuffSampler, Tex).xy;
 	float ShadowMapVal = saturate(shadowMap.x);
+	float ao = saturate(shadowMap.y);
 	
 	float3 viewNormal = normalize(CameraPosition - mul(pos,(float3x3)ViewInverse));
 	float3 lightNormal = normalize(-LightDirection);
@@ -141,8 +131,8 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	
 	float3 cSpec = lerp(0.04,max(0.04,spa),cp.metalness);
 	
-	float3 diffuse = albedo.xyz*invPi*DiffuseBRDF(cp.roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-cp.metalness);
-	float3 specular = cSpec*BRDF(cp.roughness,albedo.xyz,normal,lightNormal,viewNormal)*LightAmbient*albedo.a;
+	float3 diffuse = NL*albedo.xyz*invPi*DiffuseBRDF(cp.roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-cp.metalness);
+	float3 specular = NL*cSpec*BRDF(cp.roughness,albedo.xyz,normal,lightNormal,viewNormal)*LightAmbient*albedo.a;
 	
 	#define SKYDIR float3(0.0,1.0,0.0)
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
@@ -154,14 +144,27 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa,sqrt(cp.roughness),NoV) * lerp(0.3679,1,cp.metalness); //TBD
 	
 	
-	odiff = float4(albedo.a*(ShadowMapVal*diffuse+ambientDiffuse) + (1-albedo.a)*sky,albedo.a);
-	ospec = float4(albedo.a*(ShadowMapVal*specular+ambientSpecular),cp.SSS);
+	odiff = float4(albedo.a*(ShadowMapVal*diffuse+ao*ambientDiffuse) + (1-albedo.a)*sky.xyz,albedo.a);
+	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular),cp.SSS);
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor)+0.001),0,0,1);
 	return;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////
+#define BLUR_PSSM_AO \
+		"RenderColorTarget0=BlurWorkBuff;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=PSSMBilateralBlurX;" \
+		\
+		"RenderColorTarget0=ScreenShadowMapProcessed;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=PSSMBilateralBlurY;"
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 
 float4 ClearColor = {0,0,0,0};
@@ -177,7 +180,14 @@ string Script =
 		
         "ScriptExternal=Color;"
 
-		GENPSSM
+		
+		"RenderColorTarget0=AOWorkMap;"
+    	"RenderDepthStencilTarget=mrt_Depth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=AOPass;"
+		
+		BLUR_PSSM_AO
 		
 		"RenderColorTarget0=diffuseTexture;"
 		"RenderColorTarget1=specularTexture;"
@@ -221,8 +231,35 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(lumHalfSamp);
+		PixelShader  = compile ps_3_0 COPY_PS(BlurWorkBuffSampler);
 	}
+	
+	pass AOPass < string Script= "Draw=Buffer;"; > {
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+		VertexShader = compile vs_3_0 POST_VS();
+		PixelShader  = compile ps_3_0 PS_AO();
+	}
+	
+	
+	pass PSSMBilateralBlurX < string Script= "Draw=Buffer;"; > {
+        AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxBxToTxy_PS(ScreenShadowMapSampler,AOWorkMapSampler,float2(2*ViewportOffset.x, 0.0f));
+    }
+	
+	pass PSSMBilateralBlurY < string Script= "Draw=Buffer;"; > {
+        AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(BlurWorkBuffSampler,float2(0.0f, 2*ViewportOffset.y));
+    }
+
+	
 	pass PBRPRECOMP < string Script= "Draw=Buffer;"; > 
 	{
 		AlphaBlendEnable = FALSE;
@@ -230,8 +267,9 @@ string Script =
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 PBR_PS();
-		//PixelShader  = compile ps_3_0 COPY_PS(TransObjSamp);
     }
+	
+	
 	pass DOHALFLUM < string Script= "Draw=Buffer;"; > 
 	{		
 		AlphaBlendEnable = FALSE;
@@ -256,6 +294,8 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
 		PixelShader  = compile ps_3_0 ToneMapping_PS();
     }
+	
+	
 	pass BLURX < string Script= "Draw=Buffer;"; > 
 	{
 		AlphaBlendEnable = FALSE;
@@ -280,19 +320,5 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 Blend_PS();
     }
-	pass PSSMBilateralBlurX < string Script= "Draw=Buffer;"; > {
-        AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 ShadowMapBlurPS(ScreenShadowMapSampler,float2(2*ViewportOffset.x, 0.0f));
-    }
-	
-	pass PSSMBilateralBlurY < string Script= "Draw=Buffer;"; > {
-        AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 ShadowMapBlurPS(ScreenShadowWorkBuffSampler,float2(0.0f, 2*ViewportOffset.y));
-    }
+
 }

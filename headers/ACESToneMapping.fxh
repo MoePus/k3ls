@@ -1,3 +1,16 @@
+texture2D lumTexture : RENDERCOLORTARGET <
+	float2 ViewportRatio = {1.0, 1.0};
+	string Format = "R16F";
+>;
+sampler2D lumSamp = sampler_state {
+    texture = <lumTexture>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = NONE;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
 #define halfPixel 32
 texture2D lumHalfTexture : RENDERCOLORTARGET <
 	int Width = halfPixel;
