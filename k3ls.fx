@@ -167,7 +167,6 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
     	"Pass=PSSMBilateralBlurY;"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-
 float4 ClearColor = {0,0,0,0};
 float ClearDepth  = 1.0;
 
@@ -199,16 +198,26 @@ string Script =
     	"Pass=PBRPRECOMP;"
 		"RenderColorTarget1=;"
 		"RenderColorTarget2=;" //NEED to free after malloc?
-
 				
 		SSSSS
-	
-	
+		
 		"RenderColorTarget0=lumHalfTexture;"
 		"RenderDepthStencilTarget=lumHalfDepth;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=DOHALFLUM;"
+		
+		"RenderColorTarget0=lumQuaterTexture;"
+		"RenderDepthStencilTarget=lumQuaterDepth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=DOQuaterLUM;"
+		
+		"RenderColorTarget0=lum4x4Texture;"
+		"RenderDepthStencilTarget=lum4x4Depth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=DO4x4LUM;"
 		
 		"RenderColorTarget0=adapted_lum;"
     	"RenderDepthStencilTarget=adapted_lum_Depth;"
@@ -277,7 +286,23 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(lumSamp);
+		PixelShader  = compile ps_3_0 DownScale_PS(lumSamp);
+	}
+	pass DOQuaterLUM < string Script= "Draw=Buffer;"; > 
+	{		
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+		VertexShader = compile vs_3_0 POST_VS();
+		PixelShader  = compile ps_3_0 DownScale_PS(lumHalfSamp);
+	}
+	pass DO4x4LUM < string Script= "Draw=Buffer;"; > 
+	{		
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+		VertexShader = compile vs_3_0 POST_VS();
+		PixelShader  = compile ps_3_0 DownScale_PS(lumQuaterSamp);
 	}
 	pass calcAL < string Script= "Draw=Buffer;"; > 
 	{

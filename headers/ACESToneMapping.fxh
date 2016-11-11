@@ -1,17 +1,19 @@
 texture2D lumTexture : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
+	int MipLevel = 1;
 	string Format = "R16F";
 >;
 sampler2D lumSamp = sampler_state {
     texture = <lumTexture>;
     MinFilter = LINEAR;
     MagFilter = LINEAR;
-    MipFilter = NONE;
+    MipFilter = LINEAR;
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
 
 #define halfPixel 32
+#define quaterPixel 16
 texture2D lumHalfTexture : RENDERCOLORTARGET <
 	int Width = halfPixel;
 	int Height = halfPixel;
@@ -22,7 +24,7 @@ sampler2D lumHalfSamp = sampler_state {
     texture = <lumHalfTexture>;
     MinFilter = LINEAR;
     MagFilter = LINEAR;
-    MipFilter = NONE;
+    MipFilter = POINT;
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
@@ -31,6 +33,49 @@ texture2D lumHalfDepth : RENDERDEPTHSTENCILTARGET <
 	int Height = halfPixel;
     string Format = "D24S8";
 >;
+
+
+texture2D lumQuaterTexture : RENDERCOLORTARGET <
+	int Width = quaterPixel;
+	int Height = quaterPixel;
+	int MipLevel = 1;
+	string Format = "R16F";
+>;
+sampler2D lumQuaterSamp = sampler_state {
+    texture = <lumQuaterTexture>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+texture2D lumQuaterDepth : RENDERDEPTHSTENCILTARGET <
+	int Width = quaterPixel;
+	int Height = quaterPixel;
+    string Format = "D24S8";
+>;
+
+
+texture2D lum4x4Texture : RENDERCOLORTARGET <
+	int Width = 4;
+	int Height = 4;
+	int MipLevel = 1;
+	string Format = "R16F";
+>;
+sampler2D lum4x4Samp = sampler_state {
+    texture = <lum4x4Texture>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = LINEAR;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+texture2D lum4x4Depth : RENDERDEPTHSTENCILTARGET <
+	int Width = 4;
+	int Height = 4;
+    string Format = "D24S8";
+>;
+
 
 texture2D adapted_lum: RENDERCOLORTARGET <//K3LS_GBuffer_04_roughness&reflectance&effect&posw
     int Width = 1;
@@ -59,14 +104,12 @@ float CalcAdaptedLum(float adapted_lum, float current_lum)
 
 float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 {
-	const float step = 2.0 / halfPixel;
-	float lum = tex2Dlod(lumHalfSamp,float4(ViewportOffset,0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step),0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*2,0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*3,0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step)*4,0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step*3,step),0,1)).x;
-	lum += tex2Dlod(lumHalfSamp,float4(ViewportOffset+float2(step,step*3),0,1)).x;
+	const float step = 0.40;
+	float lum = tex2Dlod(lum4x4Samp,float4(ViewportOffset,0,1)).x;
+	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(0,step),0,1)).x;
+	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(step,0),0,1)).x;
+	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(step,step),0,1)).x;
+
 	lum/=4;
 	lum = exp(lum);
 	lum = CalcAdaptedLum(adaptedLum[0][0].r,lum);
@@ -74,6 +117,7 @@ float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 }
 
 #undef halfPixel
+#undef quaterPixel
 
 float EyeAdaption(float lum)
 {
@@ -109,4 +153,9 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
 	
 	return float4(linear_to_srgb(outColor),1);
+}
+
+float4 DownScale_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
+{
+	return tex2Dlod(Samp,float4(Tex,0,1));
 }
