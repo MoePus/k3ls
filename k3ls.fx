@@ -122,7 +122,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
 	
-	float3 viewNormal = normalize(CameraPosition - mul(pos,ViewInverse));
+	float3 viewNormal = normalize(CameraPosition - mul(pos,(float3x3)ViewInverse));
 	float3 lightNormal = normalize(-LightDirection);
 	
 	float NL = saturate(dot(lightNormal,normal));
@@ -142,11 +142,16 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	IBL(viewNormal,normal,cp.roughness,IBLD,IBLS);
 	
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212,0,cp.metalness);
-	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa*albedo,cp.roughness,NoV) * lerp(0.3679,1,cp.metalness); //TBD
+	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212, 0, cp.metalness);
+	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.3679, 1, cp.metalness); //TBD
 		
-	odiff = float4(albedo.a*(ShadowMapVal*diffuse+ao*ambientDiffuse) + (1-albedo.a)*sky.xyz,albedo.a);
-	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular),cp.SSS);
+	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
+	float3 surfaceSpecular = cp.varnishAlpha * (dot(IBLS,RGB2LUM) * AmbientBRDF_UE4(1.0.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,1.0.xxx,normal,lightNormal,viewNormal)*LightAmbient);	
+	
+	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
+	
+	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight) + (1-albedo.a)*sky.xyz,albedo.a);
+	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular,cp.SSS);
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor)+0.001),0,0,1);
 	return;
@@ -241,8 +246,9 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(BlurWorkBuffSampler);
+		PixelShader  = compile ps_3_0 DownScale_PS(lumSamp);
 	}
+	
 	
 	pass AOPass < string Script= "Draw=Buffer;"; > {
 		AlphaBlendEnable = FALSE;
