@@ -42,6 +42,12 @@ shared texture PSSMDepth : OFFSCREENRENDERTARGET <
         "*.pmd=pssm\\depth.fx;"
         "*.x=hide;";
 >;
+sampler PSSMsamp = sampler_state {
+	texture = <PSSMDepth>;
+	MinFilter = LINEAR;	MagFilter = LINEAR;	MipFilter = NONE;
+	AddressU  = CLAMP;	AddressV = CLAMP;
+};
+
 
 texture2D ScreenShadowMapProcessed : RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};

@@ -11,7 +11,7 @@ sampler BlurWorkBuffSampler = sampler_state {
     AddressV  = CLAMP;
 };
 
-#define BLUR_COUNT 7
+#define BLUR_COUNT 6
 
 float BilateralWeight(float r, float depth, float center_d, float sharpness)
 {
