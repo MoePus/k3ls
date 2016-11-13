@@ -3,14 +3,13 @@ float Script : STANDARDSGLOBAL <
     string ScriptClass = "scene";
     string ScriptOrder = "postprocess";
 > = 0.8;
-
-float4x4 ProjectionInverse			: PROJECTIONINVERSE;
-float4x4 ProjectionMatrix			: PROJECTION;
-float4x4 ViewProjectionInverse		: VIEWPROJECTIONINVERSE;
-float4x4 ViewMatrix					: VIEW;
-float4x4 ViewInverse				: VIEWINVERSE;
-float4x4 ViewProjMatrix				: VIEWPROJECTION;
-float4x4 WorldViewProjMatrix		: WORLDVIEWPROJECTION;
+///////////////////////////////////////////////////////////////////////////////////////////////
+#include "headers\\environment.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
+#define RGB2LUM float3(0.2125, 0.7154, 0.0721)
+#define PI  3.14159265359f
+#define invPi 0.31830988618
+///////////////////////////////////////////////////////////////////////////////////////////////
 float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
 float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 float3 FOGXYZ         : CONTROLOBJECT < string name = "(self)"; string item="XYZ"; >;
@@ -19,21 +18,12 @@ static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
 static float FOG_S2inv = 1/(FOG_S*FOG_S);
 static float FOG_A = saturate(1.0 - FOGXYZ.z);
 
-float2 ViewportSize : VIEWPORTPIXELSIZE;
-static float2 ViewportOffset = (float2(0.5,0.5)/ViewportSize);
-static float2 ViewportOffset2 = ViewportOffset * 2;
-float3   CameraPosition    : POSITION  < string Object = "Camera"; >;
-float3   LightDirection    : DIRECTION < string Object = "Light"; >;
-float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
-static float3 LightAmbient = _LightAmbient * 2;
-
 float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
 static float3 AmbientColor  = AmbLightPower*0.06;
 static float3 AmbLightColor0 = AmbLightPower*AmbColorXYZ*0.01; 
 static float3 AmbLightColor1 = AmbLightPower*AmbColorRxyz*1.8/3.141592; 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
@@ -120,7 +110,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float4 albedo = tex2D(AlbedoGbufferSamp,Tex);
 	float3 spa = tex2D(SpaGbufferSamp,Tex).xyz;
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
-	float linearDepth = albedo.a<0.0001? 6666666:linearDepthXid.x;
+	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
 	float id = linearDepthXid.y;
 	float3 pos = coord2WorldViewPos(Tex,linearDepth);
 	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
@@ -130,11 +120,11 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float ao = saturate(shadowMap.y);
 	
 	float3 view = CameraPosition - mul(pos,(float3x3)ViewInverse);
-	float3 viewNormal = normalize(view);
+	float3 viewNormal = normalize(-CameraDirection);
 	float3 lightNormal = normalize(-LightDirection);
 	
 	float NL = saturate(dot(lightNormal,normal));
-	float LV = saturate(dot(lightNormal,viewNormal));
+	float LV = abs(dot(lightNormal,viewNormal));
 	
 	ConParam cp;
 	getConParams(id,cp);
@@ -179,7 +169,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 
 	
 	float3 outColor = odiff.xyz+ospec.xyz;
-	lum = float4(log(dot(RGB2LUM,outColor)+0.001),0,0,1);
+	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
 	return;
 }
 

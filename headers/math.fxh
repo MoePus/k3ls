@@ -1,9 +1,3 @@
-static float invCotheta = 1/ProjectionMatrix._22;
-static float Aspect = ViewportSize.x/ViewportSize.y;
-#define RGB2LUM float3(0.2125, 0.7154, 0.0721)
-#define PI  3.14159265359f
-#define invPi 0.31830988618
-
 float3 coord2WorldViewPos(float2 texcoord, float depth)
 {
 	float2 SPos = float2(2.0f*texcoord.x-1.0f, -2.0f*texcoord.y+1.0f);

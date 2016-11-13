@@ -1,10 +1,30 @@
+#define SHADOW_QUALITY 4
+
+#define CasterAlphaThreshold 180
+#define RecieverAlphaThreshold 0.4
+
+#if SHADOW_QUALITY == 1
+#   define SHADOW_MAP_SIZE 2048
+#elif SHADOW_QUALITY == 2
+#   define SHADOW_MAP_SIZE 4096
+#elif SHADOW_QUALITY == 3
+#   define SHADOW_MAP_SIZE 6144
+#elif SHADOW_QUALITY == 4
+#   define SHADOW_MAP_SIZE 8192
+#else
+#   define SHADOW_MAP_SIZE 10000
+#endif
+
+
 #define WARP_RANGE 8
 #define SHADOW_MAP_OFFSET  (1.0 / SHADOW_MAP_SIZE)
 #define SELFSHADOW_COS_MAX 0.00872653549837393496488821397358 //cos 89.5 degree
 
+#define Epsilon 0.0001
+
 // ¥Ñ¥é¥á©`¥¿ÐûÑÔ
 float2 ViewportSize : VIEWPORTPIXELSIZE;
-static float2 ViewportOffset  = (float2(0.5,0.5) / ViewportSize);
+static float2 ViewportOffset = (float2(0.5,0.5)/ViewportSize);
 static float2 ViewportOffset2 = (float2(1.0,1.0) / ViewportSize);
 static float2 ViewportAspect  = float2(1, ViewportSize.x / ViewportSize.y);
 uniform bool opadd;
@@ -14,34 +34,22 @@ float3	CameraDirection		: DIRECTION < string Object = "Camera"; >;
 float3	LightDirection		: DIRECTION < string Object = "Light"; >;
 float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
 static float3 LightAmbient = _LightAmbient * 2;
-const float PI = 3.14159265359f;
-const float invPi = 0.31830988618;
 
-sampler MMDSamp0 : register(s0);
-sampler MMDSamp1 : register(s1);
-sampler MMDSamp2 : register(s2);
 
 // ×ù·¨‰ä“QÐÐÁÐ
 float4x4 WorldMatrix              : WORLD;
 float4x4 WorldMatrixInverse       : WORLDINVERSE;
 float4x4 WorldViewMatrix          : WORLDVIEW;
-float4x4 WorldViewProjectMatrix   : WORLDVIEWPROJECTION;
+float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
 float4x4 ViewMatrix               : VIEW;
-float4x4 ViewMatrixInverse        : VIEWINVERSE;
+float4x4 ViewInverse			  : VIEWINVERSE;
 float4x4 ProjectMatrix            : PROJECTION;
 float4x4 ProjectMatrixInverse     : PROJECTIONINVERSE;
 float4x4 ViewProjectMatrix        : VIEWPROJECTION;
 float4x4 ViewProjectMatrixInverse : VIEWPROJECTIONINVERSE;
-float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
 
-
-uniform float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
-uniform float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
-uniform float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
-uniform float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
-uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry"; >;
-uniform float4   MaterialToon      : TOONCOLOR;
-static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
+static float invCotheta = 1/ProjectMatrix._22;
+static float Aspect = ViewportSize.x/ViewportSize.y;
 
 const float CascadeZMin = 5;
 const float CascadeZMax = 2000;
@@ -223,5 +231,5 @@ float CalcLight(float casterDepth, float receiverDepth, float rate)
 
 static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
 static float4x4 matLightViewProject = mul(matLightView, matLightProject);
-static float4x4 matLightProjectToCameraView = mul(ViewMatrixInverse, matLightView);
+static float4x4 matLightProjectToCameraView = mul(ViewInverse, matLightView);
 static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);

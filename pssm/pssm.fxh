@@ -2,12 +2,11 @@
 ///////Got this From Ray-mmd shader//////
 ///////		and	From ikPolishShader//////
 /////////////////////////////////////////
-#include "pssm\\config.fxh"
 
 texture ScreenShadowMap : OFFSCREENRENDERTARGET <
     string Description = "PSSM";
     float2 ViewPortRatio = {1.0, 1.0};
-    string Format = "A16B16G16R16F";
+    string Format = "R16F";
     float4 ClearColor = { 1, 0, 0, 0 };
     float ClearDepth = 1.0;
     int MipLevels = 1;

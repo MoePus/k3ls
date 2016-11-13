@@ -1,12 +1,18 @@
-#include "config.fxh"
-#include "environment.fxh"
+#include "..\\headers\\environment.fxh"
+
+uniform float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
+uniform float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
+uniform float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
+uniform float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
+uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry"; >;
+uniform float4   MaterialToon      : TOONCOLOR;
+static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
 texture DiffuseMap: MATERIALTEXTURE;
-sampler DiffuseSamp = sampler_state
-{
-    texture = <DiffuseMap>;
-    MINFILTER = POINT; MAGFILTER = POINT; MIPFILTER = POINT;
-    ADDRESSU  = WRAP; ADDRESSV  = WRAP;
+sampler DiffuseMapSamp = sampler_state {
+	texture = <DiffuseMap>;
+	MinFilter = POINT;	MagFilter = POINT;	MipFilter = POINT;
+	ADDRESSU  = WRAP;	ADDRESSV  = WRAP;
 };
 
 
@@ -38,7 +44,7 @@ float4 CascadeShadowMapPS(float4 coord0 : TEXCOORD0, float4 position : TEXCOORD1
 
 
     float alpha = MaterialDiffuse.a;
-    if ( useTexture ) alpha *= tex2D(DiffuseSamp, coord0.xy).a;
+    if ( useTexture ) alpha *= tex2D(DiffuseMapSamp, coord0.xy).a;
     //clip(alpha - CasterAlphaThreshold);
 
     return float4(position.z,0,0,alpha);

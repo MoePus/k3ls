@@ -1,3 +1,5 @@
+#include "..\\headers\\environment.fxh"
+
 uniform	float4	MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
 static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
@@ -20,11 +22,6 @@ sampler NorTexSampler = sampler_state {
     ADDRESSV = WRAP;
 };
 
-
-float4x4 WorldViewProjMatrix		: WORLDVIEWPROJECTION;
-float4x4 WorldViewMatrix			: WORLDVIEW;
-float4x4 WorldMatrix				: WORLD;
-float3   CameraPosition    : POSITION  < string Object = "Camera"; >;
 
 sampler MMDSamp0 : register(s0);
 sampler MMDSamp1 : register(s1);
@@ -103,11 +100,12 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	float2 scaledTex = IN.Tex*(1+spaScale*8.5f);
 	float3 t = tex2D(NorTexSampler, scaledTex).xyz;
 	float3 normal,spa;
-	float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
+	
 	if(useNormalMap) 
 	{
 		if (spaornormal>=0.5) //Use for Normal
 		{
+			float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
 			normal = 2.0f * t - 1;
 			normal.rg *= ((spaornormal-0.5)*30);
 			
@@ -116,22 +114,21 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 			
 			normal = normalize(normal);
 			spa = (1-specularStrength).xxx;
+			
+			normal = normalize(mul(normal, tangentFrame));
 		}
 		else //Use for Spa
 		{
-			normal = float3(0,0,1);
+			normal = IN.Normal;
 			spa = t*2*(0.5-spaornormal)*(1-specularStrength);
 		}
     }else
 	{
-	    normal = float3(0,0,1);
+	    normal = IN.Normal;
 		spa = (1-specularStrength).xxx;
 	}
-	
-	normal = normalize(mul(normal, tangentFrame));
-	
+
 	float alpha = DiffuseColor.a;
-	
 	
 	gbuffer.albedo = DiffuseColor;
 	gbuffer.depth = float4(IN.oPos.w,_id,0,1);

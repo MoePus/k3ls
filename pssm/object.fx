@@ -1,5 +1,12 @@
-#include "config.fxh"
-#include "environment.fxh"
+#include "..\\headers\\environment.fxh"
+
+uniform float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
+uniform float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
+uniform float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
+uniform float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
+uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry"; >;
+uniform float4   MaterialToon      : TOONCOLOR;
+static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
 texture DiffuseMap: MATERIALTEXTURE;
 sampler DiffuseMapSamp = sampler_state {
@@ -116,7 +123,7 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	shadow = shadow*max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold);
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
-	return float4(shadow, IN.PPos.z, transmission(casterDepth,IN.Tex.w), 1);
+	return float4(shadow,0,0,1);
 }
 
 
