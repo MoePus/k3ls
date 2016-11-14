@@ -16,7 +16,7 @@ float3 FOGXYZ         : CONTROLOBJECT < string name = "(self)"; string item="XYZ
 static float FOG_G = max(0,FOGXYZ.x);
 static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
 static float FOG_S2inv = 1/(FOG_S*FOG_S);
-static float FOG_A = saturate(1.0 - FOGXYZ.z);
+static float FOG_A = max(0,1+FOGXYZ.z);
 
 float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
@@ -121,11 +121,11 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float ao = saturate(shadowMap.y);
 	
 	float3 view = CameraPosition - mul(pos,(float3x3)ViewInverse);
-	float3 viewNormal = normalize(-CameraDirection);
+	float3 viewNormal = normalize(view);
 	float3 lightNormal = normalize(-LightDirection);
 	
 	float NL = saturate(dot(lightNormal,normal));
-	float LV = abs(dot(lightNormal,viewNormal));
+	float LV = dot(lightNormal,viewNormal);
 	
 	ConParam cp;
 	getConParams(id,cp);
@@ -154,16 +154,12 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(1 + FOG_G*FOG_G -2 * FOG_G * LV, 1.5);//\bwronski_volumetric_fog_siggraph2014/
 	float viewDistance = length(view);
 	float scatterFactor = -exp(-FOG_S*viewDistance*0.0000125)/FOG_S+1/FOG_S;
-	float3 fog = LightAmbient * scatterFactor * phaseFactor * FOG_A;	
-	
+	float fog = scatterFactor * phaseFactor * FOG_A * LightAmbient;
 	
 	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight) + (1-albedo.a)*sky.xyz,albedo.a);
-	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular ,cp.SSS);
+	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular + fog,cp.SSS);
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
-	
-	ospec.xyz += fog;
-	
 
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
@@ -214,7 +210,7 @@ string Script =
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=PBRPRECOMP;"
 		"RenderColorTarget1=;"
-		"RenderColorTarget2=;" //NEED to free after malloc?
+		"RenderColorTarget2=;" //mono:Do not forget to free it.
 				
 		SSSSS
 		
@@ -263,7 +259,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 DownScale_PS(DepthGbufferSamp);
+		PixelShader  = compile ps_3_0 DownScale_PS(fogSamp);
 	}
 	
 	
