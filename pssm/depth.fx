@@ -8,6 +8,10 @@ uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry";
 uniform float4   MaterialToon      : TOONCOLOR;
 static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
+sampler MMDSamp0 : register(s0);
+sampler MMDSamp1 : register(s1);
+sampler MMDSamp2 : register(s2);
+
 texture DiffuseMap: MATERIALTEXTURE;
 sampler DiffuseMapSamp = sampler_state {
 	texture = <DiffuseMap>;

@@ -83,6 +83,7 @@ struct POST_OUTPUT {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\SSSSS.fxh"
 #include "headers\\ACESToneMapping.fxh"
+#include "headers\\AA.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "pssm\\pssm.fxh"
 #include "ssdo\\ssdo.fxh"
@@ -150,8 +151,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 	
 	
-	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(1 + FOG_G*FOG_G -2 * FOG_G * LV, 1.5);
-	//\bwronski_volumetric_fog_siggraph2014/
+	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(1 + FOG_G*FOG_G -2 * FOG_G * LV, 1.5);//\bwronski_volumetric_fog_siggraph2014/
 	float viewDistance = length(view);
 	float scatterFactor = -exp(-FOG_S*viewDistance*0.0000125)/FOG_S+1/FOG_S;
 	float3 fog = LightAmbient * scatterFactor * phaseFactor * FOG_A;	
@@ -162,17 +162,13 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
 	
-	//fog*=;
-	
 	ospec.xyz += fog;
 	
 
-	
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
 	return;
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
 		"RenderColorTarget0=BlurWorkBuff;" \
@@ -246,12 +242,17 @@ string Script =
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=calcAL;"
 		
-
+		"RenderColorTarget0=mrt;"
+    	"RenderDepthStencilTarget=mrt_Depth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=ToneMapping;"
+		
 		"RenderColorTarget0=;"
     	"RenderDepthStencilTarget=;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=ToneMapping;"
+    	"Pass=AA;"
 			
 		ClearGbuffer
 		;
@@ -367,6 +368,15 @@ string Script =
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 Blend_PS();
+    }
+	
+	pass AA < string Script= "Draw=Buffer;"; > 
+	{
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 Antialias_PS();
     }
 
 }
