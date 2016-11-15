@@ -38,7 +38,7 @@ static float3 LightAmbient = _LightAmbient * 2;
 
 // ×ù·¨‰ä“QÐÐÁÐ
 float4x4 WorldMatrix              : WORLD;
-float4x4 WorldMatrixInverse       : WORLDINVERSE;
+float4x4 WorldInverse			  : WORLDINVERSE;
 float4x4 WorldViewMatrix          : WORLDVIEW;
 float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
 float4x4 ViewMatrix               : VIEW;
@@ -55,15 +55,23 @@ const float CascadeZMin = 5;
 const float CascadeZMax = 2000;
 const float CascadeScale = 0.5;
 
-const float LightZMin = 1;
-const float LightZMax = 3600.0;
+const float LightZMax = 4000.0;
 const float LightDistance = 1000;
 
 const float LightPlaneNear = 0.1;
 const float LightPlaneFar = 500.0;
 
-float4x4 GetLightViewMatrix(float3 forward, float3 LightPosition)
+
+static float4x4 matLightProject = {
+    1,  0,  0,  0,
+    0,  1,  0,  0,
+    0,  0,  1.0 / LightZMax,    0,
+    0,  0,  0,  1
+};
+
+float4x4 GetLightViewMatrix(float3 forward)
 {
+   float3 LightPosition = -forward * LightDistance;
    float3 right = cross(float3(0.0f, 1.0f, 0.0f), forward);
    float3 up;
 
@@ -118,13 +126,6 @@ float4x4 CreateLightViewMatrix(float3 forward)
                     rotation[2], 0,
                     mul(-pos, rotation), 1);
 }
-
-static float4x4 matLightProject = {
-    1,  0,  0,  0,
-    0,  1,  0,  0,
-    0,  0,  1.0 / LightZMax,    0,
-    0,  0,  0,  1
-};
 
 float CalculateSplitPosition(float i)
 {
@@ -229,7 +230,7 @@ float CalcLight(float casterDepth, float receiverDepth, float rate)
     return 1.0 - saturate((receiverDepth - casterDepth) * rate);
 }
 
-static float4x4 matLightView = CreateLightViewMatrix(normalize(LightDirection));
+static float4x4 matLightView = GetLightViewMatrix(normalize(LightDirection));
 static float4x4 matLightViewProject = mul(matLightView, matLightProject);
 static float4x4 matLightProjectToCameraView = mul(ViewInverse, matLightView);
 static float4x4 lightParam = CreateLightProjParameters(matLightProjectToCameraView);

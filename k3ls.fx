@@ -103,7 +103,52 @@ float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
 	return color;
 }
+/*
+float rayMarch(float3 wpos,float rd,float depth)
+{
 
+	if(depth > 800) return 1.0;
+	float numstep = 200.0;
+	float boost = 0.0;
+	float d = depth/numstep;
+	//[loop]
+	//for(float s=0.1;s<numstep;s+=1)
+	//{
+		float4 Pos = float4(wpos,1);
+		
+		float4 PPos = mul(Pos, matLightViewProject);
+		
+		const float2 scale = float2(0.25, -0.25);
+		float4 LightPPos01,LightPPos23;
+		LightPPos01.xy = (PPos.xy * lightParam[0].xy + lightParam[0].zw);
+		LightPPos01.zw = (PPos.xy * lightParam[1].xy + lightParam[1].zw);
+		LightPPos23.xy = (PPos.xy * lightParam[2].xy + lightParam[2].zw);
+		LightPPos23.zw = (PPos.xy * lightParam[3].xy + lightParam[3].zw);
+		LightPPos01 *= scale.xyxy;
+		LightPPos23 *= scale.xyxy;
+		
+		float4 lightPPos0 = CalcCascadePPos(LightPPos01.xy, float2(0, 0), 0);
+		float4 lightPPos1 = CalcCascadePPos(LightPPos01.zw, float2(1, 0), 1);
+		float4 lightPPos2 = CalcCascadePPos(LightPPos23.xy, float2(0, 1), 2);
+		float4 lightPPos3 = CalcCascadePPos(LightPPos23.zw, float2(1, 1), 3);
+		float4 texCoord0 = lightPPos3;
+		float4 texCoord1 = 0;
+		if (lightPPos2.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos2; }
+		if (lightPPos1.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos1; }
+		if (lightPPos0.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos0; }
+		
+		float casterDepth0 = tex2D(PSSMsamp, texCoord0.xy).x;
+		float casterDepth1 = tex2D(PSSMsamp, texCoord1.xy).x;
+		float casterDepth = lerp(lerp(1, casterDepth1, texCoord1.w), casterDepth0, texCoord0.w);
+		float receiverDepth = PPos.z;
+		
+		float acc = receiverDepth > casterDepth ? 0.0:0.2;
+		boost += (1-boost)*acc;
+	//}
+
+	return receiverDepth;
+}
+*/
 void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
@@ -114,13 +159,14 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
 	float id = linearDepthXid.y;
 	float3 pos = coord2WorldViewPos(Tex,linearDepth);
+	float3 wpos = mul(pos,(float3x3)ViewInverse);
 	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
 	
 	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
 	
-	float3 view = CameraPosition - mul(pos,(float3x3)ViewInverse);
+	float3 view = CameraPosition - wpos;
 	float3 viewNormal = normalize(view);
 	float3 lightNormal = normalize(-LightDirection);
 	
@@ -151,9 +197,10 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 	
 	
-	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(1 + FOG_G*FOG_G -2 * FOG_G * LV, 1.5);//\bwronski_volumetric_fog_siggraph2014/
+	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(abs(1 + FOG_G*FOG_G -2 * FOG_G * LV), 1.5);//\bwronski_volumetric_fog_siggraph2014/
 	float viewDistance = length(view);
-	float scatterFactor = -exp(-FOG_S*viewDistance*0.0000125)/FOG_S+1/FOG_S;
+	//float boost = rayMarch(wpos,-viewNormal,viewDistance);
+	float scatterFactor = 1/FOG_S -exp(-FOG_S*viewDistance*0.0000125)/FOG_S;
 	float fog = scatterFactor * phaseFactor * FOG_A * LightAmbient;
 	
 	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight) + (1-albedo.a)*sky.xyz,albedo.a);
@@ -161,6 +208,8 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
 
+	//odiff=float4(0,0,0,1);
+	//ospec.xyz =  boost.xxx;
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
 	return;
@@ -259,7 +308,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 DownScale_PS(fogSamp);
+		PixelShader  = compile ps_3_0 COPY_PS(ScreenShadowMapSampler);
 	}
 	
 	

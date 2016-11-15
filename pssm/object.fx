@@ -50,7 +50,6 @@ DrawObject_OUTPUT ShadowObjectVS(
 	Out.Normal = Normal;
 
 	float4 PPos = mul(Pos, matLightViewProject);
-	PPos.xy /= PPos.w;
 
 	const float2 scale = float2(0.25, -0.25);
 	Out.LightPPos01.xy = (PPos.xy * lightParam[0].xy + lightParam[0].zw);
@@ -67,7 +66,7 @@ DrawObject_OUTPUT ShadowObjectVS(
 
 float transmission(float c,float r)
 {
-	return saturate(abs((c-r)*(LightZMax - LightZMin)));
+	return saturate(abs((c-r)*(LightZMax)));
 }
 
 float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
@@ -127,7 +126,7 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	shadow = shadow*max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold);
 	
 	shadow = min(shadow, saturate(dot(normalize(IN.Normal), -LightDirection)));
-	return float4(shadow,0,0,1);
+	return float4(shadow,transmission(casterDepth,IN.Tex.w),0,1);
 }
 
 
