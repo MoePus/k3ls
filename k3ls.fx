@@ -10,13 +10,14 @@ float Script : STANDARDSGLOBAL <
 #define PI  3.14159265359f
 #define invPi 0.31830988618
 ///////////////////////////////////////////////////////////////////////////////////////////////
-float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
-float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 float3 FOGXYZ         : CONTROLOBJECT < string name = "(self)"; string item="XYZ"; >;
 static float FOG_G = max(0,FOGXYZ.x);
 static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
 static float FOG_S2inv = 1/(FOG_S*FOG_S);
 static float FOG_A = max(0,1+FOGXYZ.z);
+
+float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
+float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 
 float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
@@ -82,6 +83,7 @@ struct POST_OUTPUT {
 #include "headers\\GbufferClear.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\SSSSS.fxh"
+#include "fog\\fog.fxh"
 #include "headers\\ACESToneMapping.fxh"
 #include "headers\\AA.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,54 +103,21 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
-	return color;
+	return color.xxxw;
 }
-/*
-float rayMarch(float3 wpos,float rd,float depth)
+
+inline float3 CalcTranslucency(float s)
 {
-
-	if(depth > 800) return 1.0;
-	float numstep = 200.0;
-	float boost = 0.0;
-	float d = depth/numstep;
-	//[loop]
-	//for(float s=0.1;s<numstep;s+=1)
-	//{
-		float4 Pos = float4(wpos,1);
-		
-		float4 PPos = mul(Pos, matLightViewProject);
-		
-		const float2 scale = float2(0.25, -0.25);
-		float4 LightPPos01,LightPPos23;
-		LightPPos01.xy = (PPos.xy * lightParam[0].xy + lightParam[0].zw);
-		LightPPos01.zw = (PPos.xy * lightParam[1].xy + lightParam[1].zw);
-		LightPPos23.xy = (PPos.xy * lightParam[2].xy + lightParam[2].zw);
-		LightPPos23.zw = (PPos.xy * lightParam[3].xy + lightParam[3].zw);
-		LightPPos01 *= scale.xyxy;
-		LightPPos23 *= scale.xyxy;
-		
-		float4 lightPPos0 = CalcCascadePPos(LightPPos01.xy, float2(0, 0), 0);
-		float4 lightPPos1 = CalcCascadePPos(LightPPos01.zw, float2(1, 0), 1);
-		float4 lightPPos2 = CalcCascadePPos(LightPPos23.xy, float2(0, 1), 2);
-		float4 lightPPos3 = CalcCascadePPos(LightPPos23.zw, float2(1, 1), 3);
-		float4 texCoord0 = lightPPos3;
-		float4 texCoord1 = 0;
-		if (lightPPos2.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos2; }
-		if (lightPPos1.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos1; }
-		if (lightPPos0.w > 0.0) { texCoord1 = texCoord0; texCoord0 = lightPPos0; }
-		
-		float casterDepth0 = tex2D(PSSMsamp, texCoord0.xy).x;
-		float casterDepth1 = tex2D(PSSMsamp, texCoord1.xy).x;
-		float casterDepth = lerp(lerp(1, casterDepth1, texCoord1.w), casterDepth0, texCoord0.w);
-		float receiverDepth = PPos.z;
-		
-		float acc = receiverDepth > casterDepth ? 0.0:0.2;
-		boost += (1-boost)*acc;
-	//}
-
-	return receiverDepth;
+	//http://iryoku.com/translucency/
+	float dd = s*-s;
+	return float3(0.233f, 0.455f, 0.649f) * exp(dd / 0.0064f)
+		+ float3(0.1f, 0.336f, 0.344f) * exp(dd / 0.0484f)
+		+ float3(0.118f, 0.198f, 0.0f) * exp(dd / 0.187f)
+		+ float3(0.113f, 0.007f, 0.007f) * exp(dd / 0.567f)
+		+ float3(0.358f, 0.004f, 0.0f) * exp(dd / 1.99f)
+		+ float3(0.078f, 0.0f, 0.0f) * exp(dd / 7.41f);
 }
-*/
+
 void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
@@ -181,6 +150,18 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 diffuse = NL*albedo.xyz*invPi*DiffuseBRDF(cp.roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-cp.metalness);
 	float3 specular = NL*cSpec*BRDF(cp.roughness,albedo.xyz,normal,lightNormal,viewNormal)*LightAmbient*albedo.a;
 	
+	
+	float3 trans;
+	if(cp.translucency>Epsilon)
+	{
+		float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
+		trans = CalcTranslucency((1-ShadowMapVal)/cp.translucency)*irradiance*albedo.xyz;//Wrong but beautiful.
+	}
+	else
+	{
+		trans = 0;
+	}
+	
 	#define SKYDIR float3(0.0,1.0,0.0)
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
 	float3 Hemisphere = lerp(AmbLightColor1.xyz, AmbLightColor0.xyz, SdN*SdN);
@@ -195,21 +176,12 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 surfaceSpecular = cp.varnishAlpha * (dot(IBLS,RGB2LUM) * AmbientBRDF_UE4(1.0.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,1.0.xxx,normal,lightNormal,viewNormal)*LightAmbient);	
 	
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
-	
-	
-	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(abs(1 + FOG_G*FOG_G -2 * FOG_G * LV), 1.5);//\bwronski_volumetric_fog_siggraph2014/
-	float viewDistance = length(view);
-	//float boost = rayMarch(wpos,-viewNormal,viewDistance);
-	float scatterFactor = 1/FOG_S -exp(-FOG_S*viewDistance*0.0000125)/FOG_S;
-	float fog = scatterFactor * phaseFactor * FOG_A * LightAmbient;
-	
-	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight) + (1-albedo.a)*sky.xyz,albedo.a);
-	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular + fog,cp.SSS);
+		
+	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight + trans) + (1-albedo.a)*sky.xyz,albedo.a);
+	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular,cp.SSS);
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
 
-	//odiff=float4(0,0,0,1);
-	//ospec.xyz =  boost.xxx;
 	float3 outColor = odiff.xyz+ospec.xyz;
 	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
 	return;
@@ -287,6 +259,12 @@ string Script =
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=calcAL;"
 		
+		"RenderColorTarget0=FogWorkBuff;"
+    	"RenderDepthStencilTarget=mrt_Depth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=FOGBLUR;"
+		
 		"RenderColorTarget0=mrt;"
     	"RenderDepthStencilTarget=mrt_Depth;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
@@ -308,7 +286,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(ScreenShadowMapSampler);
+		PixelShader  = compile ps_3_0 COPY_PS(FogDepthMapSampler);
 	}
 	
 	
@@ -424,4 +402,12 @@ string Script =
         PixelShader  = compile ps_3_0 Antialias_PS();
     }
 
+	pass FOGBLUR < string Script= "Draw=Buffer;"; > 
+	{
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 FOG_PS();
+    }
 }

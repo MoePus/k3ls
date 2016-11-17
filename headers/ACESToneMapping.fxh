@@ -139,7 +139,16 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float4 blurredDiffuse = tex2D(diffuseSamp,Tex);
 	float3 specular = tex2D(specularSamp,Tex).xyz;
 	
-	float3 ocolor = blurredDiffuse.xyz + specular;
+	float3 fog = tex2D(FogWorkBuffSampler,Tex).x * LightAmbient * float3(0.7,0.72,0.79);
+	float3 lightNormal = normalize(-LightDirection);
+	float4 LightPosition = float4(lightNormal * LightDistance,1);
+	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
+	if(blurredDiffuse.a > Epsilon)
+		fog *= saturate(dot(CameraDirection,normalize(float3(0,0,lightPosProj.z))));
+	
+	
+	
+	float3 ocolor = blurredDiffuse.xyz + specular + fog;
 	
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = adaptedLum[0][0].r;

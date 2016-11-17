@@ -61,6 +61,7 @@ DrawObject_OUTPUT ShadowObjectVS(
 
 	Out.Tex = float4(Tex.xy, Out.Pos.z, PPos.z);
 
+	
 	return Out;
 }
 
@@ -90,7 +91,6 @@ float4 ShadowObjectPS(DrawObject_OUTPUT IN, uniform bool useTexture) : COLOR
 	float casterDepth1 = tex2D(PSSMsamp, texCoord1.xy).x;
 	float casterDepth = lerp(lerp(1, casterDepth1, texCoord1.w), casterDepth0, texCoord0.w);
 	float receiverDepth = IN.Tex.w;
-
 	float depthSlope = ShadowSlopeScaledBias(receiverDepth);
 	float depthBias = (IN.PPos.z / LightZMax + depthSlope) * 0.005;
 	receiverDepth -= depthBias;

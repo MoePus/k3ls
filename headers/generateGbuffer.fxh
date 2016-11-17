@@ -63,11 +63,11 @@ float3 NormalEncode(float3 N)
 VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
 {
     VS_OUTPUT Out = (VS_OUTPUT)0;
-    Out.oPos = Out.Pos = mul( Pos, WorldViewProjMatrix );
+    Out.oPos = Out.Pos = mul( Pos, ViewProjectMatrix );
 
 	Out.Normal = normalize( Normal);
     Out.Tex = Tex;
-	Out.Eye = CameraPosition - mul( Pos, WorldMatrix ).xyz;
+	Out.Eye = CameraPosition - Pos.xyz;
 	
     return Out;
 }
@@ -109,7 +109,7 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 			normal = 2.0f * t - 1;
 			normal.rg *= ((spaornormal-0.5)*30);
 			
-			if(normal.b<0)
+			if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
 				normal.b = 1.0f;
 			
 			normal = normalize(normal);

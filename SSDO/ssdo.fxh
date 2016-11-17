@@ -13,7 +13,7 @@ sampler AOWorkMapSampler = sampler_state {
 
 const float DepthLength = 10.0;	
 static float InvDepthLength6 = 1.0 / pow(DepthLength, 6);
-#define	SSAORayCount	31
+#define	SSAORayCount	32
 static float2 SSAORadiusB = (64.0 / 1024.0) / SSAORayCount * float2(1, ViewportSize.x/ViewportSize.y);
 
 inline float GetOccRate(float2 texCoord, float3 WPos, float3 N)

@@ -1,0 +1,64 @@
+#include "..\\headers\\environment.fxh"
+
+uniform	float4	MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
+static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
+
+texture ObjectTexture: MATERIALTEXTURE;
+sampler ObjTexSampler = sampler_state {
+    texture = <ObjectTexture>;
+    MINFILTER = ANISOTROPIC;
+    MAGFILTER = ANISOTROPIC;
+    MIPFILTER = LINEAR;
+    MAXANISOTROPY = 16;
+};
+
+sampler MMDSamp0 : register(s0);
+sampler MMDSamp1 : register(s1);
+sampler MMDSamp2 : register(s2);
+technique EdgeTec < string MMDPass = "edge"; > {}
+technique ShadowTec < string MMDPass = "shadow"; > {}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+struct VS_OUTPUT {
+    float4 Pos			: POSITION;
+    float2 Tex			: TEXCOORD1;
+    float4 oPos			: TEXCOORD2;
+};
+
+
+VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
+{
+    VS_OUTPUT Out = (VS_OUTPUT)0;
+    float4 xpos = mul( Pos, ViewProjectMatrix );
+	xpos.xy/=3;
+	Out.oPos = Out.Pos = xpos;
+    Out.Tex = Tex;
+	
+    return Out;
+}
+
+float4 Basic_PS(VS_OUTPUT IN,uniform const bool useTexture):COLOR
+{
+	if (useTexture) 
+	{
+        float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
+        DiffuseColor = TexColor;
+    }
+	
+	float alpha = DiffuseColor.a;
+	
+	return float4(IN.oPos.w,0,0,(alpha>Epsilon));
+}
+
+
+#define GENTec(tecname,_mmdpass,_useTexture) \
+technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture;> { \
+    pass DrawObject {  VertexShader = compile vs_3_0 Basic_VS(); \
+    PixelShader  = compile ps_3_0 Basic_PS(_useTexture); }}
+
+GENTec(MainTec1,"object",true)
+GENTec(MainTec2,"object",false)
+
+GENTec(MainTecBS1,"object_ss",true)
+GENTec(MainTecBS2,"object_ss",false)
