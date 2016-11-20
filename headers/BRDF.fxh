@@ -44,7 +44,7 @@ inline float3 BRDF(float roughness,float3 reflectance,float3 normal,float3 light
 	
 	float3 halfVector = normalize( viewNormal + lightNormal );
     float3 D = D_GGX(roughness,normal,halfVector);
-	float3 F = F_UE4(reflectance,viewNormal,lightNormal);
+	float3 F = F_UE4(reflectance,viewNormal,halfVector);
 	float3 G = G_Simth(roughness,lightNormal,viewNormal,normal);
 	
 	return D*F*G/(4.*NL*NV);
@@ -69,7 +69,8 @@ inline float DiffuseBRDF(float roughness,float3 normal,float3 lightNormal,float3
 	
 	float Fd = (1-0.5*FL)*(1-0.5*FV) + Fretro_reflection;
 	
-	return Fd;
+	float RF = lerp(1,pow(saturate(1.5-NV),3.1),square(roughness));
+	return Fd*RF;
 }
 
 

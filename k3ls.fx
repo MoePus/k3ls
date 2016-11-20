@@ -23,8 +23,8 @@ float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string i
 float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
 static float3 AmbientColor  = AmbLightPower*0.06;
-static float3 AmbLightColor0 = AmbLightPower*AmbColorXYZ*0.01; 
-static float3 AmbLightColor1 = AmbLightPower*AmbColorRxyz*1.8/3.141592; 
+static float3 AmbLightColor0 = AmbColorXYZ*0.01; 
+static float3 AmbLightColor1 = AmbColorRxyz*1.8/3.141592; 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
@@ -145,11 +145,10 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	ConParam cp;
 	getConParams(id,cp);
 	
-	float3 cSpec = lerp(0.04,max(0.04,spa),cp.metalness);
+	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),cp.metalness);
 	
 	float3 diffuse = NL*albedo.xyz*invPi*DiffuseBRDF(cp.roughness,normal,lightNormal,viewNormal)*LightAmbient*(1-cp.metalness);
-	float3 specular = NL*cSpec*BRDF(cp.roughness,albedo.xyz,normal,lightNormal,viewNormal)*LightAmbient*albedo.a;
-	
+	float3 specular = NL*BRDF(cp.roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
 	
 	float3 trans;
 	if(cp.translucency>Epsilon)
@@ -173,7 +172,7 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.3679, 1, cp.metalness); //TBD
 		
 	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
-	float3 surfaceSpecular = cp.varnishAlpha * (dot(IBLS,RGB2LUM) * AmbientBRDF_UE4(1.0.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,1.0.xxx,normal,lightNormal,viewNormal)*LightAmbient);	
+	float3 surfaceSpecular = cp.varnishAlpha * (lerp(dot(IBLS,RGB2LUM),IBLS*albedo.xyz,0.68) * AmbientBRDF_UE4(0.32.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,lerp(1.0,albedo.xyz,0.68),normal,lightNormal,viewNormal)*LightAmbient);	
 	
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 		
