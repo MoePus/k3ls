@@ -137,6 +137,34 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	return;
 }
 
+
+VS_OUTPUT FOG_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
+{
+    VS_OUTPUT Out = (VS_OUTPUT)0;
+    float4 xpos = mul( Pos, ViewProjectMatrix );
+	xpos.xy/=3;
+	Out.oPos = Out.Pos = xpos;
+    Out.Tex = Tex;
+	
+    return Out;
+}
+
+float4 FOG_PS(VS_OUTPUT IN,uniform const bool useTexture):COLOR
+{
+	if (useTexture) 
+	{
+        float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
+        DiffuseColor = TexColor;
+    }
+	
+	float alpha = DiffuseColor.a;
+	
+	return float4(IN.oPos.w,0,0,(alpha>Epsilon));
+}
+
+
+
+
 #define GENTec(tecname,_mmdpass,_useTexture,_usespheremap) \
 technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap;\
  string Script = \
@@ -146,10 +174,19 @@ technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bo
         "RenderColorTarget3=GBuffer_normal;" \
 		"RenderDepthStencilTarget=GBuffer_depth;" \
         "Pass=DrawObject;" \
+		 \
+		"RenderColorTarget0=FOG_DEPTH;" \
+        "RenderColorTarget1=;" \
+        "RenderColorTarget2=;" \
+        "RenderColorTarget3=;" \
+		"RenderDepthStencilTarget=FOG_depth;" \
+        "Pass=DrawFOGDepth;" \
     ; \
 > { \
     pass DrawObject {  VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); }}
+    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); } \
+	pass DrawFOGDepth {  VertexShader = compile vs_3_0 FOG_VS(); \
+    PixelShader  = compile ps_3_0 FOG_PS(_useTexture); }}
 
 GENTec(MainTec0,"object",false,false)
 GENTec(MainTec1,"object",true,false)

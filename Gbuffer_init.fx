@@ -36,6 +36,21 @@ shared texture2D GBuffer_normal: RENDERCOLORTARGET <
 	string Format = "D3DFMT_A32B32G32R32F";
 >;
 
+
+
+shared texture2D FOG_depth : RENDERDEPTHSTENCILTARGET <
+    float2 ViewPortRatio = {1.8,1.8};
+    string Format = "D24S8";
+>;
+
+shared texture2D FOG_DEPTH: RENDERCOLORTARGET<
+    float2 ViewPortRatio = {1.8,1.8};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	bool AntiAlias = false;
+	string Format = "R32F";
+>;
+
+
 #include "headers\\GbufferClear.fxh"
 
 float4 ClearColor = {0,0,0,0};

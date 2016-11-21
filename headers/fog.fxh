@@ -1,26 +1,3 @@
-texture FogDepthMap : OFFSCREENRENDERTARGET <
-    string Description = "FOG";
-    float2 ViewPortRatio = {1.8, 1.8};
-    string Format = "R32F";
-    float4 ClearColor = { 1, 0, 0, 0 };
-    float ClearDepth = 1.0;
-    int MipLevels = 1;
-    string DefaultEffect =
-        "self = hide;"
-        "skybox*.* = hide;"
-        "*.pmx=fog\\fogDepth.fxsub;"
-        "*.pmd=fog\\fogDepth.fxsub;"
-        "*.x=hide;";
->;
-sampler FogDepthMapSampler = sampler_state {
-    texture = <FogDepthMap>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
-    AddressU  = CLAMP;
-    AddressV  = CLAMP;
-};
-
 texture FogWorkBuff : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
 	string Format = "R16F";
