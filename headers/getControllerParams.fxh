@@ -1,5 +1,6 @@
 #define GENController(_id) \
 float roughness##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "roughness"; >; \
+float reflectance##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "reflectance"; >; \
 float metalness##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "metalness"; >; \
 float varnishAlpha##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "varnishAlpha"; >; \
 float varnishRough##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "varnishRough"; >; \
@@ -38,6 +39,7 @@ static const float Con2D[7][9] = GENCon2DVector;
 struct ConParam
 {
     float roughness;
+	float reflectance;
     float metalness;
 	float varnishAlpha;
 	float varnishRough;
@@ -51,6 +53,7 @@ void getConParams(float id,out ConParam params)
 #define fetchParams(_cid) \
 { \
 params.roughness = roughness##_cid ; \
+params.reflectance = reflectance##_cid ; \
 params.metalness = metalness##_cid ; \
 params.varnishAlpha = varnishAlpha##_cid ; \
 params.varnishRough = varnishRough##_cid ; \

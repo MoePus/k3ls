@@ -2,7 +2,6 @@ sampler MMDSamp0 : register(s0);
 sampler MMDSamp1 : register(s1);
 sampler MMDSamp2 : register(s2);
 
-
 shared texture2D GBuffer_depth : RENDERDEPTHSTENCILTARGET <
     float2 ViewPortRatio = {1.0,1.0};
     string Format = "D24S8";

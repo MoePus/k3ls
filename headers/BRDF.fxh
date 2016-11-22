@@ -68,9 +68,8 @@ inline float DiffuseBRDF(float roughness,float3 normal,float3 lightNormal,float3
 	float Fretro_reflection = RR*(FL+FV+FL*FV*(RR-1));
 	
 	float Fd = (1-0.5*FL)*(1-0.5*FV) + Fretro_reflection;
-	
-	float RF = lerp(1,pow(saturate(1.5-NV),3.1),square(roughness));
-	return Fd*RF;
+
+	return Fd;
 }
 
 

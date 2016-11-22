@@ -19,12 +19,17 @@ static float FOG_A = max(0,1+FOGXYZ.z);
 float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
 float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 
-float  AmbLightPower       : CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
-float3 AmbColorXYZ         : CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
-float3 AmbColorRxyz        : CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
+float  AmbLightPower		: CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
+float3 AmbColorXYZ			: CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
+float3 AmbColorRxyz			: CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
 static float3 AmbientColor  = AmbLightPower*0.06;
 static float3 AmbLightColor0 = AmbColorXYZ*0.01; 
 static float3 AmbLightColor1 = AmbColorRxyz*1.8/3.141592; 
+
+float  diffAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="diffAmbient-"; >;
+float  specAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="specAmbient-"; >;
+float  shadowPlus			: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="shadow+"; >;
+float  aoPlus				: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="ao+"; >;
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
@@ -132,16 +137,16 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
 	
 	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
-	float ShadowMapVal = saturate(shadowMap.x);
-	float ao = saturate(shadowMap.y);
+	float ShadowMapVal = saturate(1-(1-saturate(shadowMap.x))*(1+shadowPlus));
+	float ao = saturate(1-(1-saturate(shadowMap.y))*(1+aoPlus));
 	
 	float3 view = CameraPosition - wpos;
 	float3 viewNormal = normalize(view);
 	float3 lightNormal = normalize(-LightDirection);
-	
+
 	float NL = saturate(dot(lightNormal,normal));
 	float LV = dot(lightNormal,viewNormal);
-	
+
 	ConParam cp;
 	getConParams(id,cp);
 	
@@ -168,15 +173,17 @@ void PBR_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : C
 	IBL(viewNormal,normal,cp.roughness,IBLD,IBLS);
 	
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212, 0, cp.metalness);
-	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.3679, 1, cp.metalness); //TBD
+	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212, 0, cp.metalness)*(1 - diffAmbientMinus);
+	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.3679, 1, cp.metalness)*(1 - specAmbientMinus); //TBD
 		
 	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
 	float3 surfaceSpecular = cp.varnishAlpha * (lerp(dot(IBLS,RGB2LUM),IBLS*albedo.xyz,0.68) * AmbientBRDF_UE4(0.32.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,lerp(1.0,albedo.xyz,0.68),normal,lightNormal,viewNormal)*LightAmbient);	
+
+	float RF = lerp(1,lerp(1,min(1,pow(saturate(1.468-NoV),5)+0.23),square(cp.roughness)),cp.reflectance);
 	
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 		
-	odiff = float4(albedo.a*(ShadowMapVal*diffuse + ao*ambientDiffuse + selfLight + trans) + (1-albedo.a)*sky.xyz,albedo.a);
+	odiff = float4(albedo.a*((ShadowMapVal*diffuse + ao*ambientDiffuse)*RF + selfLight + trans) + (1-albedo.a)*sky.xyz,albedo.a);
 	ospec = float4(albedo.a*(ShadowMapVal*specular+ao*ambientSpecular) + (albedo.a>0)*surfaceSpecular,cp.SSS);
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
