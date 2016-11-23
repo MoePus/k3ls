@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<Effect xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>AutoLuminous</Name>
+  <Maker>そぼろ</Maker>
+  <Version>4.0</Version>
+  <Link1>http://sdrv.ms/OFRNsy</Link1>
+  <Link2>http://www.nicovideo.jp/mylist/17392230</Link2>
+  <Type>ポストエフェクト</Type>
+  <Day>2013/01/25</Day>
+  <Memo>発光エフェクト</Memo>
+</Effect>

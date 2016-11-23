@@ -42,19 +42,18 @@ float hash12(float2 p)
 
 float4 PS_AO( float2 texCoord: TEXCOORD0 ) : COLOR
 {
-	const float JitterOffsets[29] = {
-	0.00013,0.0356718,0.0701546,0.104637,0.13912,
-	0.173603,0.208086,0.242568,0.277051,0.311534,
-	0.346017,0.380499,0.414982,0.449465,0.483948,
-	0.51843,0.552913,0.587396,0.621879,0.6563611,
-	0.690844,0.725327,0.75981,0.7942932,0.828775,
-	0.863258,0.897741,0.932224,0.966706};
+	const float JitterOffsets[32] = {
+	0.142857,0.285714,0.428571,0.571429,0.714286,0.857143,0.0204082,
+	0.163265,0.306122,0.44898,0.591837,0.734694,0.877551,0.0408163,
+	0.183673,0.326531,0.469388,0.612245,0.755102,0.897959,0.0612245,
+	0.204082,0.346939,0.489796,0.632653,0.77551,0.918367,0.0816327,
+	0.22449,0.367347,0.510204,0.653061};
 	float Depth = tex2D(DepthGbufferSamp,texCoord).x;
 	float3 WPos = mul(coord2WorldViewPos(texCoord,Depth),(float3x3)ViewInverse);
 	float3 N = tex2D(NormalGbufferSamp,texCoord).xyz;
 	
 	//int2 rndTexOffset = int2(texCoord * ViewportSize);
-	int index = hash12(texCoord)*30%29;
+	int index = hash12(texCoord)*32%32;
 	float radMul = 1.0 / SSAORayCount * (3.14 * 2.0 * 7.0);
 	float radAdd = JitterOffsets[index] * (PI * 2.0);
 

@@ -1,0 +1,443 @@
+////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// 発光部位描画エフェクト for AutoLuminous
+// Ver.3.15
+//
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+//異方性フィルタリング作業用テクスチャサイズ
+// 0で無効化 (MMDx64では0推奨)
+#define MIPMAPTEX_SIZE  0 //512
+
+//発光部分を少し前面に押し出す
+// 0で無効、1で有効
+#define POPUP_LIGHT 0
+
+//テクスチャ高輝度識別フラグ
+#define TEXTURE_SELECTLIGHT
+
+//閾値
+float LightThreshold = 0.9;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+//Clone連携機能
+
+//Cloneのパラメータ読み込み指定
+#define CLONE_PARAMINCLUDE
+
+//以下のコメントアウトを外し、クローンエフェクトファイル名を指定
+//include "Clone.fx"
+
+//ダミー変数・関数宣言
+#ifndef CLONE_MIPMAPTEX_SIZE
+int CloneIndex = 0; //ループ変数
+int CloneCount = 1; //複製数
+float4 ClonePos(float4 Pos) { return Pos; }
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#define SPECULAR_BASE 100
+#define SYNC false
+
+
+
+bool use_toon;     //トゥーンの有無
+
+
+// マテリアル色
+float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
+float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
+float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
+float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
+
+#ifdef MIKUMIKUMOVING
+    float SpecularPower    : SPECULARPOWER < string Object = "Geometry"; >;
+#else
+    float4 SpcColor;
+    static float SpecularPower = SpcColor.a;
+#endif
+
+// 座法変換行列
+float4x4 WorldViewProjMatrix      : WORLDVIEWPROJECTION;
+//float4x4 WorldMatrix              : WORLD;
+//float4x4 ViewMatrix               : VIEW;
+float4x4 LightWorldViewProjMatrix : WORLDVIEWPROJECTION < string Object = "Light"; >;
+
+
+float3 CameraDirection : DIRECTION < string Object = "Camera"; >;
+
+#define PI 3.14159
+
+float LightUp : CONTROLOBJECT < string name = "(self)"; string item = "LightUp"; >;
+float LightUpE : CONTROLOBJECT < string name = "(self)"; string item = "LightUpE"; >;
+float LightOff : CONTROLOBJECT < string name = "(self)"; string item = "LightOff"; >;
+float Blink : CONTROLOBJECT < string name = "(self)"; string item = "LightBlink"; >;
+float BlinkSq : CONTROLOBJECT < string name = "(self)"; string item = "LightBS"; >;
+float BlinkDuty : CONTROLOBJECT < string name = "(self)"; string item = "LightDuty"; >;
+float BlinkMin : CONTROLOBJECT < string name = "(self)"; string item = "LightMin"; >;
+
+//時間
+float ftime : TIME <bool SyncInEditMode = SYNC;>;
+
+static float duty = (BlinkDuty <= 0) ? 0.5 : BlinkDuty;
+static float timerate = ((Blink > 0) ? ((1 - cos(saturate(frac(ftime / (Blink * 10)) / (duty * 2)) * 2 * PI)) * 0.5) : 1.0)
+                      * ((BlinkSq > 0) ? (frac(ftime / (BlinkSq * 10)) < duty) : 1.0);
+static float timerate1 = timerate * (1 - BlinkMin) + BlinkMin;
+
+static bool IsEmittion = (SPECULAR_BASE < SpecularPower)/* && (SpecularPower <= (SPECULAR_BASE + 100))*/ && (length(MaterialSpecular) < 0.01);
+static float EmittionPower0 = IsEmittion ? ((SpecularPower - SPECULAR_BASE) / 7.0) : 1;
+static float EmittionPower1 = EmittionPower0 * (LightUp * 2 + 1.0) * pow(400, LightUpE) * (1.0 - LightOff);
+
+
+// MMD本来のsamplerを上書きしないための記述です。削除不可。
+sampler MMDSamp0 : register(s0);
+sampler MMDSamp1 : register(s1);
+sampler MMDSamp2 : register(s2);
+
+
+// レンダリングターゲットのクリア値
+float4 ClearColor = {0,0,0,0};
+float ClearDepth  = 1.0;
+
+
+#if MIPMAPTEX_SIZE==0
+    #define DRAWSCRIPT      "RenderColorTarget0=;" \
+                                "RenderDepthStencilTarget=;" \
+                                "LoopByCount=CloneCount;" \
+                                "LoopGetIndex=CloneIndex;" \
+                                    "Pass=DrawObject;" \
+                                "LoopEnd=;"
+    
+    #define MIPMAPSCRIPT    "RenderColorTarget0=;" \
+                                "RenderDepthStencilTarget=;" \
+                                "LoopByCount=CloneCount;" \
+                                "LoopGetIndex=CloneIndex;" \
+                                    "Pass=DrawObject;" \
+                                "LoopEnd=;"
+    
+    #define CREATEMIPMAP
+    
+    // オブジェクトのテクスチャ
+    texture ObjectTexture: MATERIALTEXTURE;
+    sampler ObjTexSampler = sampler_state {
+        texture = <ObjectTexture>;
+        MINFILTER = ANISOTROPIC;
+        MAGFILTER = ANISOTROPIC;
+        MIPFILTER = LINEAR;
+        MAXANISOTROPY = 16;
+    };
+    
+#else
+    #define DRAWSCRIPT      "RenderColorTarget0=;" \
+                                "RenderDepthStencilTarget=;" \
+                                "LoopByCount=CloneCount;" \
+                                "LoopGetIndex=CloneIndex;" \
+                                    "Pass=DrawObject;" \
+                                "LoopEnd=;"
+    
+    #define MIPMAPSCRIPT    "RenderColorTarget0=UseMipmapObjectTexture;" \
+                                "RenderDepthStencilTarget=MipDepthBuffer;" \
+                                "ClearSetColor=ClearColor; Clear=Color;" \
+                                "ClearSetDepth=ClearDepth; Clear=Depth;" \
+                                "Pass=CreateMipmap;" \
+                            "RenderColorTarget0=;" \
+                                "RenderDepthStencilTarget=;" \
+                                "LoopByCount=CloneCount;" \
+                                "LoopGetIndex=CloneIndex;" \
+                                    "Pass=DrawObject;" \
+                                "LoopEnd=;"
+    
+    #define CREATEMIPMAP pass CreateMipmap < string Script= "Draw=Buffer;"; > { \
+                                AlphaBlendEnable = FALSE; \
+                                ZEnable = FALSE; \
+                                VertexShader = compile vs_3_0 VS_MipMapCreater(); \
+                                PixelShader  = compile ps_3_0 PS_MipMapCreater(); \
+                            }
+    
+    // オブジェクトのテクスチャ
+    texture ObjectTexture: MATERIALTEXTURE<
+        int MipLevels = 0;
+    >;
+    sampler DefObjTexSampler = sampler_state {
+        texture = <ObjectTexture>;
+        MINFILTER = LINEAR;
+        MAGFILTER = LINEAR;
+    };
+    
+    texture2D MipDepthBuffer : RenderDepthStencilTarget <
+        int Width = MIPMAPTEX_SIZE;
+        int Height = MIPMAPTEX_SIZE;
+        string Format = "D24S8";
+    >;
+    texture UseMipmapObjectTexture : RENDERCOLORTARGET <
+        int Width = MIPMAPTEX_SIZE;
+        int Height = MIPMAPTEX_SIZE;
+        int MipLevels = 0;
+        string Format = "A8R8G8B8" ;
+    >;
+    sampler ObjTexSampler = sampler_state {
+        texture = <UseMipmapObjectTexture>;
+        MINFILTER = ANISOTROPIC;
+        MAGFILTER = ANISOTROPIC;
+        MIPFILTER = LINEAR;
+        MAXANISOTROPY = 16;
+    };
+    
+    // テクセル位置のオフセット
+    static float2 MipTexOffset = (float2(0.5,0.5)/MIPMAPTEX_SIZE);
+    
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+//MMM対応
+
+#ifdef MIKUMIKUMOVING
+    
+    #define GETPOS MMM_SkinnedPosition(IN.Pos, IN.BlendWeight, IN.BlendIndices, IN.SdefC, IN.SdefR0, IN.SdefR1)
+    
+#else
+    
+    struct MMM_SKINNING_INPUT{
+        float4 Pos : POSITION;
+        float2 Tex : TEXCOORD0;
+        float4 AddUV1 : TEXCOORD1;
+        float4 AddUV2 : TEXCOORD2;
+        float4 AddUV3 : TEXCOORD3;
+        float4 Normal : NORMAL;
+        
+    };
+    
+    #define GETPOS (IN.Pos)
+    
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// ミップマップ作成
+
+#if MIPMAPTEX_SIZE!=0
+    struct VS_OUTPUT_MIPMAPCREATER {
+        float4 Pos    : POSITION;
+        float2 Tex    : TEXCOORD0;
+    };
+    VS_OUTPUT_MIPMAPCREATER VS_MipMapCreater( float4 Pos : POSITION, float4 Tex : TEXCOORD0 ){
+        VS_OUTPUT_MIPMAPCREATER Out;
+        Out.Pos = Pos;
+        Out.Tex = Tex + MipTexOffset;
+        return Out;
+    }
+
+    float4  PS_MipMapCreater(float2 Tex: TEXCOORD0) : COLOR0
+    {
+        return tex2D(DefObjTexSampler,Tex);
+    }
+    
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+float texlight(float3 rgb){
+    float val = saturate((length(rgb) - LightThreshold) * 3);
+    
+    val *= 0.2;
+    
+    return val;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+float3 HSV_to_RGB(float3 hsv){
+    float H = frac(hsv.x);
+    float S = hsv.y;
+    float V = hsv.z;
+    
+    float3 Color = 0;
+    
+    float Hp3 = H * 6.0;
+    float h = floor(Hp3);
+    float P = V * (1 - S);
+    float Q = V * (1 - S * (Hp3 - h));
+    float T = V * (1 - S * (1 - (Hp3 - h)));
+    
+    /*if(h <= 0.01)      { Color.rgb = float3(V, T, P); }
+    else if(h <= 1.01) { Color.rgb = float3(Q, V, P); }
+    else if(h <= 2.01) { Color.rgb = float3(P, V, T); }
+    else if(h <= 3.01) { Color.rgb = float3(P, Q, V); }
+    else if(h <= 4.01) { Color.rgb = float3(T, P, V); }
+    else               { Color.rgb = float3(V, P, Q); }*/
+    
+    Color.rgb += float3(V, T, P) * max(0, 1 - abs(h - 0));
+    Color.rgb += float3(Q, V, P) * max(0, 1 - abs(h - 1));
+    Color.rgb += float3(P, V, T) * max(0, 1 - abs(h - 2));
+    Color.rgb += float3(P, Q, V) * max(0, 1 - abs(h - 3));
+    Color.rgb += float3(T, P, V) * max(0, 1 - abs(h - 4));
+    Color.rgb += float3(V, P, Q) * max(0, 1 - abs(h - 5));
+    
+    return Color;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// 追加UVがAL用データかどうか判別
+
+bool DecisionSystemCode(float4 SystemCode){
+    bool val = (0.199 < SystemCode.r) && (SystemCode.r < 0.201)
+            && (0.699 < SystemCode.g) && (SystemCode.g < 0.701);
+    return val;
+}
+
+
+float4 getFlags(float flagcode){
+    float4 val = frac(flagcode * float4(0.1, 0.01, 0.001, 0.0001));
+    val = floor(val * 10 + 0.001);
+    return val;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// オブジェクト描画（セルフシャドウOFF）
+
+struct VS_OUTPUT {
+    float4 Pos        : POSITION;    // 射影変換座標
+    float4 Color      : TEXCOORD0;   // 色
+    float4 Tex        : TEXCOORD1;   // UV
+};
+
+
+// 頂点シェーダ
+VS_OUTPUT Basic_VS(MMM_SKINNING_INPUT IN)
+{
+    VS_OUTPUT Out = (VS_OUTPUT)0;
+    
+    
+    float4 SystemCode = IN.AddUV1;
+    float4 ColorCode = IN.AddUV2;
+    float4 AppendCode = IN.AddUV3;
+    
+    bool IsALCode = DecisionSystemCode(SystemCode);
+    float4 flags = getFlags(SystemCode.w);
+    
+    
+    
+    
+    // カメラ視点のワールドビュー射影変換
+    float4 pos = GETPOS; //位置取得
+    pos = ClonePos(pos);
+    
+    pos.xyz += IsALCode * AppendCode.z * IN.Normal;
+    
+    Out.Pos = mul( pos, WorldViewProjMatrix );
+    
+    Out.Color = MaterialDiffuse;
+    Out.Color.rgb += MaterialEmmisive / 2;
+    Out.Color.rgb *= 0.5;
+    Out.Color.rgb = IsEmittion ? Out.Color.rgb : float3(0,0,0);
+    
+    // 頂点発光 ////////////////////////
+    
+    float3 UVColor = ColorCode.rgb;
+    UVColor = lerp(UVColor, HSV_to_RGB(UVColor), flags.y);
+    UVColor *= ColorCode.a;
+    
+    Out.Color.rgb += IsALCode ? UVColor : float3(0,0,0);
+    
+    float timerate2 = (SystemCode.z > 0) ? ((1 - cos(saturate(frac((ftime + AppendCode.y) / SystemCode.z) / (duty * 2)) * 2 * PI)) * 0.5)
+                     : ((SystemCode.z < 0) ? (frac((ftime + AppendCode.y) / (-SystemCode.z / PI * 180)) < duty) : 1.0);
+    Out.Color.rgb *= max(timerate2 * (1 - BlinkMin) + BlinkMin, !IsALCode);
+    Out.Color.rgb *= max(timerate1, SystemCode.z != 0);
+    
+    Out.Tex.xy = IN.Tex; //テクスチャUV
+    Out.Tex.z = IsALCode * AppendCode.x;
+    Out.Tex.w = IsALCode * flags.x;
+    
+    #if POPUP_LIGHT
+        Out.Pos.z -= 0.01 * saturate(length(Out.Color.rgb));
+    #endif
+    
+    return Out;
+}
+
+
+// ピクセルシェーダ
+float4 Basic_PS(VS_OUTPUT IN, uniform bool useTexture) : COLOR0
+{
+    float4 Color = IN.Color;
+    float4 texcolor;
+    
+    if(useTexture){
+        
+        texcolor = tex2D(ObjTexSampler,IN.Tex.xy);
+        texcolor.rgb = saturate(texcolor.rgb - IN.Tex.z);
+        
+        #ifdef TEXTURE_SELECTLIGHT
+            Color = texcolor;
+            Color.rgb *= texlight(Color.rgb);
+        #else
+            float Color2, Color3;
+            
+            Color2 = Color * texcolor;
+            Color3 = Color * texlight(texcolor);
+            
+            Color = (IN.Tex.w < 0.1) ? Color2 : ((IN.Tex.w < 1.1) ? Color : Color3);
+            
+        #endif
+    }
+    
+    Color.rgb *= lerp(EmittionPower0, EmittionPower1, (float)use_toon);
+    
+    return Color;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+// オブジェクト描画用テクニック
+technique MainTec1 < string MMDPass = "object"; bool UseTexture = false; 
+                     string Script = DRAWSCRIPT;
+> {
+    pass DrawObject {
+        VertexShader = compile vs_3_0 Basic_VS();
+        PixelShader  = compile ps_3_0 Basic_PS(false);
+    }
+}
+
+technique MainTec2 < string MMDPass = "object"; bool UseTexture = true; 
+                     string Script = MIPMAPSCRIPT;
+> {
+    
+    CREATEMIPMAP
+    
+    pass DrawObject {
+        VertexShader = compile vs_3_0 Basic_VS();
+        PixelShader  = compile ps_3_0 Basic_PS(true);
+    }
+}
+
+
+technique MainTecBS1 < string MMDPass = "object_ss"; bool UseTexture = false; 
+                       string Script = DRAWSCRIPT;
+> {
+    pass DrawObject {
+        VertexShader = compile vs_3_0 Basic_VS();
+        PixelShader  = compile ps_3_0 Basic_PS(false);
+    }
+}
+
+technique MainTecBS2 < string MMDPass = "object_ss"; bool UseTexture = true; 
+                       string Script = MIPMAPSCRIPT;
+ > {
+    
+    CREATEMIPMAP
+    
+    pass DrawObject {
+        VertexShader = compile vs_3_0 Basic_VS();
+        PixelShader  = compile ps_3_0 Basic_PS(true);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+//影や輪郭は描画しない
+technique EdgeTec < string MMDPass = "edge"; > { }
+technique ShadowTec < string MMDPass = "shadow"; > { }
+technique ZplotTec < string MMDPass = "zplot"; > { }
+

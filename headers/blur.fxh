@@ -34,7 +34,7 @@ float4 ShadowMapBlurAxBxToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sou
 
     float2 offset1 = coord + offset;
     float2 offset2 = coord - offset;
-
+	float sharpness = 7 - 0.05*centerDepth;
     [unroll]
     for(int i = 1; i < BLUR_COUNT; i++)
     {        
@@ -45,8 +45,8 @@ float4 ShadowMapBlurAxBxToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sou
 		float s1Depth = tex2D(DepthGbufferSamp, offset1).x;
         float s2Depth = tex2D(DepthGbufferSamp, offset2).x;
 		
-        float bilateralWeight1 = BilateralWeight(i, s1Depth, centerDepth, 2.7);
-        float bilateralWeight2 = BilateralWeight(i, s2Depth, centerDepth, 2.7);
+        float bilateralWeight1 = BilateralWeight(i, s1Depth, centerDepth, sharpness);
+        float bilateralWeight2 = BilateralWeight(i, s2Depth, centerDepth, sharpness);
         
         sum.xy += float2(l1,l2) * bilateralWeight1;
         sum.xy += float2(r1,r2) * bilateralWeight2;
@@ -72,7 +72,7 @@ float4 ShadowMapBlurAxyToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sour
 
     float2 offset1 = coord + offset;
     float2 offset2 = coord - offset;
-
+	float sharpness = 5.2 - 0.022*centerDepth;
     [unroll]
     for(int i = 1; i < BLUR_COUNT; i++)
     {        
@@ -82,8 +82,8 @@ float4 ShadowMapBlurAxyToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sour
 		float s1Depth = tex2D(DepthGbufferSamp, offset1).x;
         float s2Depth = tex2D(DepthGbufferSamp, offset2).x;
 		
-        float bilateralWeight1 = BilateralWeight(i, s1Depth, centerDepth, 2.7);
-        float bilateralWeight2 = BilateralWeight(i, s2Depth, centerDepth, 2.7);
+        float bilateralWeight1 = BilateralWeight(i, s1Depth, centerDepth, sharpness);
+        float bilateralWeight2 = BilateralWeight(i, s2Depth, centerDepth, sharpness);
         
         sum.xy += l * bilateralWeight1;
         sum.xy += r * bilateralWeight2;

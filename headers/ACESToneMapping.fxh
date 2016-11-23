@@ -104,14 +104,23 @@ float CalcAdaptedLum(float adapted_lum, float current_lum)
 
 float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 {
-	const float step = 0.40;
-	float lum = tex2Dlod(lum4x4Samp,float4(ViewportOffset,0,1)).x;
-	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(0,step),0,1)).x;
-	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(step,0),0,1)).x;
-	lum += tex2Dlod(lum4x4Samp,float4(ViewportOffset+float2(step,step),0,1)).x;
-
-	lum/=4;
-	lum = exp(lum);
+	float2 Offset = 0.25;
+	const float step = 0.4;
+	float4 lumS = float4(
+	tex2Dlod(lum4x4Samp,float4(Offset,0,1)).x,
+	tex2Dlod(lum4x4Samp,float4(Offset+float2(0,step),0,1)).x,
+	tex2Dlod(lum4x4Samp,float4(Offset+float2(step,0),0,1)).x,
+	tex2Dlod(lum4x4Samp,float4(Offset+float2(step,step),0,1)).x
+	);
+	
+	float maxLum = lumS.x;
+	maxLum = max(maxLum,lumS.y);
+	maxLum = max(maxLum,lumS.z);
+	maxLum = max(maxLum,lumS.w);
+	float avgLum = (lumS.x + lumS.y + lumS.z + lumS.w)/4;
+	
+	float lum = 0.4*maxLum + 0.6*avgLum;
+	lum = exp(maxLum);
 	lum = CalcAdaptedLum(adaptedLum[0][0].r,lum);
 	return float4(lum.xxx,1);
 }

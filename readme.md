@@ -15,6 +15,10 @@
 * 可选）在原本放置sphere贴图的位置修改为高光贴图或法线贴图
 * 在pmx控制器中的`spa<=>noraml`表情中控制渲染使用的贴图类型，及其强度
 
+##其他
+* K3LS - DR 暂不支持半透明模型的正确渲染
+* K3LS 尚不支持完整的HDR效果，缺少泛光，镜头光晕等，强烈建议在K3LS.X后载入AutoLuminous.x并不要载入LightSampling.x
+
 ##Reference:
 * http://graphicrants.blogspot.jp/2013/08/specular-brdf-reference.html
 * http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf
@@ -34,5 +38,6 @@
 ##TODO:
 * 支持alpha
 * 改进Gbuffer
+* FULL HDR
 * 屏幕空间阴影
 * 多光源

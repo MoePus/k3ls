@@ -30,6 +30,8 @@ float  diffAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; str
 float  specAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="specAmbient-"; >;
 float  shadowPlus			: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="shadow+"; >;
 float  aoPlus				: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="ao+"; >;
+float  directLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="directLight+"; >;
+static float3 LightAmbient = _LightAmbient * (2 + 4 * directLightPlus);
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
