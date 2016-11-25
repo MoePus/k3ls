@@ -45,7 +45,6 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 	float4 LightPosition = float4(lightNormal * LightDistance,1);
 	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
-	lightPosProj.xy/lightPosProj.w;
 	lightPosProj.y *= -1;
     float decay=0.96815;
     float exposure=0.21;
@@ -53,7 +52,11 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
     float weight=0.58767;
 
     float2 tc = Tex;
-    float2 deltaTexCoord = -lightPosProj.xy*0.00003;
+	float l = max(Epsilon,length(CameraPosition-LightPosition));
+    float2 deltaTexCoord = -lightPosProj.xy*0.0000032;
+	deltaTexCoord /= abs(1-(l/LightDistance));
+
+	deltaTexCoord += (Tex-float2(0.5,0.5))*0.48;
     deltaTexCoord *= 1.0 / float(FOG_BLUR_SAMPLES)  * density;
     
     float illuminationDecay = 1.0;

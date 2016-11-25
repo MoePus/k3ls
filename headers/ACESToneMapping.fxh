@@ -153,7 +153,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float4 LightPosition = float4(lightNormal * LightDistance,1);
 	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
 	if(blurredDiffuse.a > Epsilon)
-		fog *= saturate(dot(CameraDirection,normalize(float3(0,0,lightPosProj.z))));
+		fog *= saturate(dot(CameraDirection,normalize(lightPosProj.xyz)));
 	
 	
 	
