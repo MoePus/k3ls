@@ -87,8 +87,8 @@ void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out flo
     float4 prefilteredSpeculr = tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer));
     float4 prefilteredTransmittance = tex2D(IBLDiffuseSampler, computeSphereCoord(-N));
 
-    prefilteredDiffuse.rgb = prefilteredDiffuse.rgb;
-    prefilteredSpeculr.rgb = prefilteredSpeculr.rgb;
+    prefilteredDiffuse.rgb = srgb2linear(prefilteredDiffuse.rgb);
+    prefilteredSpeculr.rgb = srgb2linear(prefilteredSpeculr.rgb);
     //prefilteredTransmittance.rgb = srgb2linear(prefilteredTransmittance.rgb);
 
     prefilteredSpeculr *= HorizonOcclusion(normal, view);
