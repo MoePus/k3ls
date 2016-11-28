@@ -22,7 +22,7 @@ float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si
 float  AmbLightPower		: CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
 float3 AmbColorXYZ			: CONTROLOBJECT < string name = "Ambient.x"; string item="XYZ"; >;
 float3 AmbColorRxyz			: CONTROLOBJECT < string name = "Ambient.x"; string item="Rxyz"; >;
-static float3 AmbientColor  = AmbLightPower*0.99;
+static float3 AmbientColor  = AmbLightPower;
 static float3 AmbLightColor0 = AmbColorXYZ*0.01; 
 static float3 AmbLightColor1 = AmbColorRxyz*1.8/3.141592; 
 
@@ -230,9 +230,6 @@ out float4 ospec
 	ospec.xyz *= 1-FOG_S2inv;
 }
 
-
-
-
 void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
@@ -288,7 +285,6 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 }
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
 		"RenderColorTarget0=BlurWorkBuff;" \
@@ -297,7 +293,7 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 		"ClearSetColor=ClearColor;Clear=Color;" \
     	"Pass=PSSMBilateralBlurX;" \
 		\
-		"RenderColorTarget0=ScreenShadowMapProcessed;" \
+		"RenderColorTarget0=ScreenShadowMap;" \
     	"RenderDepthStencilTarget=mrt_Depth;" \
 		"ClearSetDepth=ClearDepth;Clear=Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \
@@ -322,6 +318,8 @@ string Script =
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=SUMDepth;"
+		
+		SSSHADOWOBJ
 		
 		"RenderColorTarget0=AOWorkMap;"
     	"RenderDepthStencilTarget=mrt_Depth;"
@@ -405,6 +403,14 @@ string Script =
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
 		PixelShader  = compile ps_3_0 sumDepth_PS();
+	}
+	
+	pass SSShadow < string Script= "Draw=Buffer;"; > {
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+		VertexShader = compile vs_3_0 POST_VS();
+		PixelShader  = compile ps_3_0 SSOBJ();
 	}
 	
 	pass AOPass < string Script= "Draw=Buffer;"; > {

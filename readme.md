@@ -1,7 +1,7 @@
 #K3LS#
 又一个mikumikudance用基于物理的渲染包
 
-    版本 1.0.0
+    版本 1.1.0
     
 ##使用方法:
 ###启用渲染
@@ -36,8 +36,13 @@
 * MikuMikuEffect Reference
 
 ##TODO:
-* 支持alpha
-* 改进Gbuffer
+* 支持alpha √
+* 改进Gbuffer √
+* 屏幕空间阴影 √
+* 基于物理的体积雾
 * FULL HDR
-* 屏幕空间阴影
 * 多光源
+
+##TBD
+* IBL的合成模式
+* translucency的因子
