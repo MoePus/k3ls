@@ -127,16 +127,67 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	    normal = IN.Normal;
 		spa = (1-specularStrength).xxx;
 	}
-
+	normal = normalize(normal);
+	
 	float alpha = DiffuseColor.a;
+	clip(alpha>=1-Epsilon?1:-1);
 	
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id,0,(alpha>Epsilon));
-	gbuffer.spa = float4(spa,(alpha>Epsilon));
-	gbuffer.Normal = float4(normal,(alpha>Epsilon));
+	gbuffer.depth = float4(IN.oPos.w,_id,0,0);
+	gbuffer.spa = float4(spa,normal.z);
+	gbuffer.Normal = float4(normal.xy,0,0);
 	return;
 }
 
+void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,out GbufferParam gbuffer)
+{
+	if (useTexture) 
+	{
+        float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
+        DiffuseColor = TexColor;
+    }
+	
+	float2 scaledTex = IN.Tex*(1+spaScale*8.5f);
+	float3 t = tex2D(NorTexSampler, scaledTex).xyz;
+	float3 normal,spa;
+	
+	if(useNormalMap) 
+	{
+		if (spaornormal>=0.5) //Use for Normal
+		{
+			float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
+			normal = 2.0f * t - 1;
+			normal.rg *= ((spaornormal-0.5)*30);
+			
+			if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
+				normal.b = 1.0f;
+			
+			normal = normalize(normal);
+			spa = (1-specularStrength).xxx;
+			
+			normal = normalize(mul(normal, tangentFrame));
+		}
+		else //Use for Spa
+		{
+			normal = IN.Normal;
+			spa = t*2*(0.5-spaornormal)*(1-specularStrength);
+		}
+    }else
+	{
+	    normal = IN.Normal;
+		spa = (1-specularStrength).xxx;
+	}
+	normal = normalize(normal);
+	
+	float alpha = DiffuseColor.a;
+	clip(alpha>=1-Epsilon || alpha<Epsilon?-1:1);
+	
+	gbuffer.albedo = DiffuseColor;
+	gbuffer.depth = float4(IN.oPos.w,_id,0,1);
+	gbuffer.spa = float4(spa,1);
+	gbuffer.Normal = float4(normal,1);
+	return;
+}
 
 VS_OUTPUT FOG_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
 {
@@ -174,6 +225,13 @@ technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bo
         "RenderColorTarget3=GBuffer_normal;" \
 		"RenderDepthStencilTarget=GBuffer_depth;" \
         "Pass=DrawObject;" \
+		\
+		"RenderColorTarget0=GBuffer_ALPHA_FRONT_albedo;" \
+        "RenderColorTarget1=GBuffer_ALPHA_FRONT_linearDepth;" \
+        "RenderColorTarget2=GBuffer_ALPHA_FRONT_spa;" \
+        "RenderColorTarget3=GBuffer_ALPHA_FRONT_normal;" \
+		"RenderDepthStencilTarget=GBuffer_depth;" \
+        "Pass=Draw_ALPHA_FRONT_Object;" \
 		 \
 		"RenderColorTarget0=FOG_DEPTH;" \
         "RenderColorTarget1=;" \
@@ -183,8 +241,15 @@ technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bo
         "Pass=DrawFOGDepth;" \
     ; \
 > { \
-    pass DrawObject {  VertexShader = compile vs_3_0 Basic_VS(); \
+    pass DrawObject {  \
+	AlphaBlendEnable = false; \
+	VertexShader = compile vs_3_0 Basic_VS(); \
     PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); } \
+	\
+	pass Draw_ALPHA_FRONT_Object {  \
+	VertexShader = compile vs_3_0 Basic_VS(); \
+    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap); } \
+	\
 	pass DrawFOGDepth {  VertexShader = compile vs_3_0 FOG_VS(); \
     PixelShader  = compile ps_3_0 FOG_PS(_useTexture); }}
 

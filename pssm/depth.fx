@@ -57,32 +57,28 @@ float4 CascadeShadowMapPS(float4 coord0 : TEXCOORD0, float4 position : TEXCOORD1
 #define alphaCliper \
 AlphaFunc = GREATER; \
 AlphaRef = CasterAlphaThreshold; \
-AlphaBlendEnable = false; 
+AlphaBlendEnable = false; AlphaTestEnable = true; 
 
 #define PSSM_TEC(name, mmdpass, tex) \
     technique name < string MMDPass = mmdpass; bool UseTexture = tex; \
     > { \
         pass CascadeShadowMap0 { \
 			alphaCliper \
-            AlphaBlendEnable = false; AlphaTestEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3(-1, 1, 0)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap1 { \
 			alphaCliper \
-            AlphaBlendEnable = false; AlphaTestEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3( 1, 1, 1)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap2 { \
 			alphaCliper \
-            AlphaBlendEnable = false; AlphaTestEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3(-1,-1, 2)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap3 { \
 			alphaCliper \
-            AlphaBlendEnable = false; AlphaTestEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3( 1,-1, 3)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \

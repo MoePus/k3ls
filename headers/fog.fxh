@@ -12,7 +12,6 @@ sampler FogWorkBuffSampler = sampler_state {
     AddressV  = CLAMP;
 };
 
-float ftime : TIME <bool SyncInEditMode = false;>;
 float depth2scatterFactor(float linearDepth)
 {
 	float scatterFactor = 1/FOG_S - exp(-FOG_S*linearDepth*0.0000125)/FOG_S;

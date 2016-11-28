@@ -7,34 +7,57 @@ shared texture2D GBuffer_depth : RENDERDEPTHSTENCILTARGET <
     string Format = "D24S8";
 >;
 
+//////////////////////NO ALPHA/////////////////////////
 shared texture2D GBuffer_albedo: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	bool AntiAlias = false;
 	string Format = "A8R8G8B8";
 >;
 
 shared texture2D GBuffer_linearDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	bool AntiAlias = false;
 	string Format = "G32R32F";
 >;
 
 shared texture2D GBuffer_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	bool AntiAlias = false;
 	string Format = "A16B16G16R16F";
 >;
 
 shared texture2D GBuffer_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	bool AntiAlias = false;
-	string Format = "D3DFMT_A32B32G32R32F";
+	string Format = "D3DFMT_G32R32F";
+>;
+//////////////////////NO ALPHA/////////////////////////
+
+/////////////////////ALPHA FRAG////////////////////////
+shared texture2D GBuffer_ALPHA_FRONT_albedo: RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0,1.0};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "A8R8G8B8";
 >;
 
+shared texture2D GBuffer_ALPHA_FRONT_linearDepth: RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0,1.0};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "G32R32F";
+>;
+
+shared texture2D GBuffer_ALPHA_FRONT_spa: RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0,1.0};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "A16B16G16R16F";
+>;
+
+shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0,1.0};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "D3DFMT_A32B32G32R32F";
+>;
+/////////////////////ALPHA FRAG////////////////////////
 
 
 shared texture2D FOG_depth : RENDERDEPTHSTENCILTARGET <

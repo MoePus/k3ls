@@ -30,6 +30,40 @@ sampler NormalGbufferSamp = sampler_state {
     AddressU  = CLAMP;
 	AddressV  = CLAMP;
 };
+///////////////////////////////////////////////
+sampler Albedo_ALPHA_FRONT_GbufferSamp = sampler_state {
+    texture = <GBuffer_ALPHA_FRONT_albedo>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+sampler Depth_ALPHA_FRONT_GbufferSamp = sampler_state {
+    texture = <GBuffer_ALPHA_FRONT_linearDepth>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+sampler Spa_ALPHA_FRONT_GbufferSamp = sampler_state {
+    texture = <GBuffer_ALPHA_FRONT_spa>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+sampler Normal_ALPHA_FRONT_GbufferSamp = sampler_state {
+    texture = <GBuffer_ALPHA_FRONT_normal>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+///////////////////////////////////////////////
 sampler FogDepthMapSampler = sampler_state {
     texture = <FOG_DEPTH>;
     MinFilter = LINEAR;

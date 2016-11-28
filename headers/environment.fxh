@@ -34,6 +34,7 @@ float3	CameraPosition		: POSITION  < string Object = "Camera"; >;
 float3	CameraDirection		: DIRECTION < string Object = "Camera"; >;
 float3	LightDirection		: DIRECTION < string Object = "Light"; >;
 float3	_LightAmbient		: AMBIENT   < string Object = "Light"; >;
+float 	ftime : TIME <bool SyncInEditMode = false;>;
 
 // ×ù·¨‰ä“QÐÐÁÐ
 float4x4 WorldMatrix              : WORLD;

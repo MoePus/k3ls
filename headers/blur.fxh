@@ -28,7 +28,7 @@ float4 ShadowMapBlurAxBxToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sou
     float center1 = tex2D(source1, coord).x;
     float center2 = tex2D(source2, coord).x;
 	
-	float2 centerDepth = tex2D(DepthGbufferSamp,coord).xy;
+	float2 centerDepth = tex2D(sumDepthSamp,coord).xy;
 
     float3 sum = float3(center1, center2, 1);
 
@@ -42,8 +42,8 @@ float4 ShadowMapBlurAxBxToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sou
 		float r1 = tex2D(source1, offset2).x;
 		float l2 = tex2D(source2, offset1).x;
 		float r2 = tex2D(source2, offset2).x;
-		float2 s1Depth = tex2D(DepthGbufferSamp, offset1).xy;
-        float2 s2Depth = tex2D(DepthGbufferSamp, offset2).xy;
+		float2 s1Depth = tex2D(sumDepthSamp, offset1).xy;
+        float2 s2Depth = tex2D(sumDepthSamp, offset2).xy;
 		
         float bilateralWeight1 = BilateralWeight(i, s1Depth.x, centerDepth.x, sharpness + 5.5*min(1,abs(s1Depth.y-centerDepth.y)));
         float bilateralWeight2 = BilateralWeight(i, s2Depth.x, centerDepth.x, sharpness + 5.5*min(1,abs(s2Depth.y-centerDepth.y)));
@@ -66,7 +66,7 @@ float4 ShadowMapBlurAxyToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sour
 {
     float2 center = tex2D(source, coord).xy;
 
-	float2 centerDepth = tex2D(DepthGbufferSamp,coord).xy;
+	float2 centerDepth = tex2D(sumDepthSamp,coord).xy;
 
     float3 sum = float3(center, 1);
 
@@ -79,8 +79,8 @@ float4 ShadowMapBlurAxyToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sour
         float2 l = tex2D(source, offset1).xy;
 		float2 r = tex2D(source, offset2).xy;
 
-		float2 s1Depth = tex2D(DepthGbufferSamp, offset1).xy;
-        float2 s2Depth = tex2D(DepthGbufferSamp, offset2).xy;
+		float2 s1Depth = tex2D(sumDepthSamp, offset1).xy;
+        float2 s2Depth = tex2D(sumDepthSamp, offset2).xy;
 		
         float bilateralWeight1 = BilateralWeight(i, s1Depth.x, centerDepth.x, sharpness + 5.5*min(1,abs(s1Depth.y-centerDepth.y)));
         float bilateralWeight2 = BilateralWeight(i, s2Depth.x, centerDepth.x, sharpness + 5.5*min(1,abs(s2Depth.y-centerDepth.y)));
