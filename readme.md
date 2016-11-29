@@ -1,7 +1,7 @@
 #K3LS#
 又一个mikumikudance用基于物理的渲染包
 
-    版本 1.1.0
+    版本 1.1.2
     
 ##使用方法:
 ###启用渲染
@@ -12,8 +12,9 @@
 
 ###模型改造
 * 删除模型中所有sphere贴图，或将其设置为`無效`
-* 可选）在原本放置sphere贴图的位置修改为高光贴图或法线贴图
-* 在pmx控制器中的`spa<=>noraml`表情中控制渲染使用的贴图类型，及其强度
+* 删除模型中所有toon贴图
+* 可选）在原本放置sphere贴图的位置修改为法线贴图
+* 可选）在原本放置sphere贴图的位置修改为高光贴图(RBG)+粗糙度贴图(A)
 
 ##其他
 * K3LS - DR 暂不支持半透明模型的正确渲染
@@ -26,14 +27,15 @@
 * http://advances.realtimerendering.com/s2014/wronski/bwronski_volumetric_fog_siggraph2014.pdf
 * http://www.iryoku.com/sssss/
 * http://iryoku.com/translucency/
-* https://zhuanlan.zhihu.com/p/20119162?refer=graphics
 * KlayGE(https://github.com/gongminmin/KlayGE)
 * Ray(https://github.com/ray-cast/ray-mmd)
+* N2+CShader
+* ikPolishShader
 
 ##Inspired by:
 * NCHLShader2
-* N2+CShader
 * MikuMikuEffect Reference
+* https://zhuanlan.zhihu.com/p/20119162?refer=graphics
 
 ##TODO:
 * 支持alpha √

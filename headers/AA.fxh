@@ -7,11 +7,11 @@ float4 Antialias_PS( float2 Tex: TEXCOORD0) : COLOR
 
 	// 深度の差が大きいところ
 	// Where depth gets lots of difference
-	float DC = tex2D( DepthGbufferSamp, Tex).x;
-	float DL = tex2D( DepthGbufferSamp, Tex + float2(-1, 0) * ViewportOffset2).x;
-	float DR = tex2D( DepthGbufferSamp, Tex + float2( 1, 0) * ViewportOffset2).x;
-	float DU = tex2D( DepthGbufferSamp, Tex + float2( 0,-1) * ViewportOffset2).x;
-	float DD = tex2D( DepthGbufferSamp, Tex + float2( 0, 1) * ViewportOffset2).x;
+	float DC = tex2D( sumDepthSamp, Tex).x;
+	float DL = tex2D( sumDepthSamp, Tex + float2(-1, 0) * ViewportOffset2).x;
+	float DR = tex2D( sumDepthSamp, Tex + float2( 1, 0) * ViewportOffset2).x;
+	float DU = tex2D( sumDepthSamp, Tex + float2( 0,-1) * ViewportOffset2).x;
+	float DD = tex2D( sumDepthSamp, Tex + float2( 0, 1) * ViewportOffset2).x;
 	float4 grad = abs(DC - float4(DL,DR,DU,DD)) * 10.0 / DC;
 
 	// 色の差が大きいところ

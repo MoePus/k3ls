@@ -2,7 +2,7 @@
 ///////Got this From Ray-mmd shader//////
 ///////		and	From ikPolishShader//////
 /////////////////////////////////////////
-shared texture PSSMDepth : OFFSCREENRENDERTARGET <
+texture PSSMDepth : OFFSCREENRENDERTARGET <
     string Description = "PSSMDepth";
 	int Width = SHADOW_MAP_SIZE;
     int Height = SHADOW_MAP_SIZE;

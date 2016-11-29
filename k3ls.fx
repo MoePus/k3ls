@@ -190,6 +190,7 @@ out float4 ospec
 
 	ConParam cp;
 	getConParams(id,cp);
+	cp.roughness *= 1-frac(id)*10;
 	
 	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),cp.metalness);
 	

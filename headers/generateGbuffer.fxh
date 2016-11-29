@@ -12,7 +12,7 @@ sampler ObjTexSampler = sampler_state {
     MAXANISOTROPY = 16;
 };
 texture2D NormalTexure: MATERIALSPHEREMAP;
-sampler NorTexSampler = sampler_state {
+sampler NorSampler = sampler_state {
     texture = <NormalTexure>;
     MINFILTER = ANISOTROPIC;
     MAGFILTER = ANISOTROPIC;
@@ -21,7 +21,15 @@ sampler NorTexSampler = sampler_state {
     ADDRESSU = WRAP;
     ADDRESSV = WRAP;
 };
-
+texture ObjectToonTexture : MATERIALTOONTEXTURE;
+sampler ObjToonSampler = sampler_state{
+    texture = <ObjectToonTexture>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+    MIPFILTER = NONE;
+    ADDRESSU  = CLAMP;
+    ADDRESSV  = CLAMP;
+};
 
 sampler MMDSamp0 : register(s0);
 sampler MMDSamp1 : register(s1);
@@ -31,8 +39,8 @@ technique ShadowTec < string MMDPass = "shadow"; > {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define getCon(_id) \
-float spaScale : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "spaScale"; >; \
-float spaornormal : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "spa<->normal"; >; \
+float normalScale : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "normalScale"; >; \
+float normalStrength : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "normalStrength"; >; \
 float specularStrength : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "specularStrength"; >;
 
 getCon(_id)
@@ -46,7 +54,6 @@ struct GbufferParam
 	float4 Normal	:	COLOR3;
 };
 
-
 struct VS_OUTPUT {
     float4 Pos			: POSITION;
     float2 Tex			: TEXCOORD1;
@@ -54,11 +61,6 @@ struct VS_OUTPUT {
 	float3 Normal		: TEXCOORD3;
 	float3 Eye			: TEXCOORD4;
 };
-
-float3 NormalEncode(float3 N)
-{
-	return N * 0.5 + 0.5;
-}
 
 VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
 {
@@ -73,7 +75,6 @@ VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : T
 }
 
 
-// 接空間取得
 inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
 {
     float3 dp1 = ddx(View);
@@ -89,103 +90,99 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
     return float3x3(normalize(Tangent), normalize(Binormal), Normal);
 }
 
-void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,out GbufferParam gbuffer)
+void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,uniform const bool usespa,out GbufferParam gbuffer)
 {
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
         DiffuseColor = TexColor;
     }
-	
-	float2 scaledTex = IN.Tex*(1+spaScale*8.5f);
-	float3 t = tex2D(NorTexSampler, scaledTex).xyz;
+
 	float3 normal,spa;
+	float roughnessFactor = 0;
 	
 	if(useNormalMap) 
 	{
-		if (spaornormal>=0.5) //Use for Normal
-		{
-			float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
-			normal = 2.0f * t - 1;
-			normal.rg *= ((spaornormal-0.5)*30);
-			
-			if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
-				normal.b = 1.0f;
-			
-			normal = normalize(normal);
-			spa = (1-specularStrength).xxx;
-			
-			normal = normalize(mul(normal, tangentFrame));
-		}
-		else //Use for Spa
-		{
-			normal = IN.Normal;
-			spa = t*2*(0.5-spaornormal)*(1-specularStrength);
-		}
+		float2 scaledTex = IN.Tex*(1+normalScale*10.0f);
+		float3 t = tex2D(NorSampler, scaledTex).xyz;
+		float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
+		normal = 2.0f * t - 1;
+		normal.rg *= ((0.5-normalStrength)*30);
+		if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
+			normal = float3(0,0,1);
+		normal = mul(normalize(normal), tangentFrame);
     }else
 	{
-	    normal = IN.Normal;
-		spa = (1-specularStrength).xxx;
+		normal = IN.Normal;
 	}
 	normal = normalize(normal);
 	
+	if(usespa)
+	{
+		float4 t = tex2D(ObjToonSampler, IN.Tex);
+		spa = t.xyz * (1-specularStrength);
+		roughnessFactor = (1-t.w)/10.0;
+	}
+	else
+	{
+		spa = 1-specularStrength;
+	}
+
 	float alpha = DiffuseColor.a;
 	clip(alpha>=1-Epsilon?1:-1);
 	
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id,0,0);
+	gbuffer.depth = float4(IN.oPos.w,_id+roughnessFactor,0,0);
 	gbuffer.spa = float4(spa,normal.z);
 	gbuffer.Normal = float4(normal.xy,0,0);
 	return;
 }
 
-void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,out GbufferParam gbuffer)
+void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,uniform const bool usespa,out GbufferParam gbuffer)
 {
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
         DiffuseColor = TexColor;
     }
-	
-	float2 scaledTex = IN.Tex*(1+spaScale*8.5f);
-	float3 t = tex2D(NorTexSampler, scaledTex).xyz;
+
 	float3 normal,spa;
+	float roughnessFactor = 0;
 	
 	if(useNormalMap) 
 	{
-		if (spaornormal>=0.5) //Use for Normal
-		{
-			float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
-			normal = 2.0f * t - 1;
-			normal.rg *= ((spaornormal-0.5)*30);
-			
-			if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
-				normal.b = 1.0f;
-			
-			normal = normalize(normal);
-			spa = (1-specularStrength).xxx;
-			
-			normal = normalize(mul(normal, tangentFrame));
-		}
-		else //Use for Spa
-		{
-			normal = IN.Normal;
-			spa = t*2*(0.5-spaornormal)*(1-specularStrength);
-		}
+		float2 scaledTex = IN.Tex*(1+normalScale*10.0f);
+		float3 t = tex2D(NorSampler, scaledTex).xyz;
+		float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
+		normal = 2.0f * t - 1;
+		normal.rg *= ((0.5-normalStrength)*30);
+		if(normal.b<0)
+			normal = float3(0,0,1);
+		normal = mul(normalize(normal), tangentFrame);
     }else
 	{
-	    normal = IN.Normal;
-		spa = (1-specularStrength).xxx;
+		normal = IN.Normal;
 	}
 	normal = normalize(normal);
+	
+	if(usespa)
+	{
+		float4 t = tex2D(ObjToonSampler, IN.Tex);
+		spa = t.xyz * (1-specularStrength);
+		roughnessFactor = (1-t.w)/10.0;
+	}
+	else
+	{
+		spa = 1-specularStrength;
+	}
 	
 	float alpha = DiffuseColor.a;
 	clip(alpha>=1-Epsilon || alpha<Epsilon?-1:1);
 	
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id,0,1);
+	gbuffer.depth = float4(IN.oPos.w,_id+roughnessFactor,0,1);
 	gbuffer.spa = float4(spa,1);
-	gbuffer.Normal = float4(normal,1);
+	gbuffer.Normal = float4(normal.xyz,1);
 	return;
 }
 
@@ -214,10 +211,8 @@ float4 FOG_PS(VS_OUTPUT IN,uniform const bool useTexture):COLOR
 }
 
 
-
-
-#define GENTec(tecname,_mmdpass,_useTexture,_usespheremap) \
-technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap;\
+#define GENTec(tecname, _mmdpass, _useTexture, _usespheremap, _usetoonmap) \
+technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap; bool UseToon = _usetoonmap;\
  string Script = \
         "RenderColorTarget0=GBuffer_albedo;" \
         "RenderColorTarget1=GBuffer_linearDepth;" \
@@ -244,21 +239,30 @@ technique tecname < string MMDPass = _mmdpass; bool UseTexture = _useTexture; bo
     pass DrawObject {  \
 	AlphaBlendEnable = false; \
 	VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); } \
+    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap,_usetoonmap); } \
 	\
 	pass Draw_ALPHA_FRONT_Object {  \
 	VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap); } \
+    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap,_usetoonmap); } \
 	\
 	pass DrawFOGDepth {  VertexShader = compile vs_3_0 FOG_VS(); \
     PixelShader  = compile ps_3_0 FOG_PS(_useTexture); }}
 
-GENTec(MainTec0,"object",false,false)
-GENTec(MainTec1,"object",true,false)
-GENTec(MainTec2,"object",false,true)
-GENTec(MainTec3,"object",true,true)
 
-GENTec(MainTecBS0,"object_ss",false,false)
-GENTec(MainTecBS1,"object_ss",true,false)
-GENTec(MainTecBS2,"object_ss",false,true)
-GENTec(MainTecBS3,"object_ss",true,true)
+GENTec(MainTec0,object,false,false,false)
+GENTec(MainTec1,object,true,false,false)
+GENTec(MainTec2,object,false,true,false)
+GENTec(MainTec3,object,true,true,false)
+GENTec(MainTec4,object,false,false,true)
+GENTec(MainTec5,object,true,false,true)
+GENTec(MainTec6,object,false,true,true)
+GENTec(MainTec7,object,true,true,true)
+
+GENTec(MainTecBS0,object_ss,false,false,false)
+GENTec(MainTecBS1,object_ss,true,false,false)
+GENTec(MainTecBS2,object_ss,false,true,false)
+GENTec(MainTecBS3,object_ss,true,true,false)
+GENTec(MainTecBS4,object_ss,false,false,true)
+GENTec(MainTecBS5,object_ss,true,false,true)
+GENTec(MainTecBS6,object_ss,false,true,true)
+GENTec(MainTecBS7,object_ss,true,true,true)
