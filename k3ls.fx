@@ -223,7 +223,7 @@ out float4 ospec
 	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
 	float3 surfaceSpecular = cp.varnishAlpha * (lerp(dot(IBLS,RGB2LUM),IBLS*albedo.xyz,0.68) * AmbientBRDF_UE4(0.32.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,lerp(1.0,albedo.xyz,0.68),normal,lightNormal,viewNormal)*LightAmbient);	
 
-	float RF = lerp(1,lerp(1,min(1,pow(saturate(1.468-NoV),5)+0.23),square(cp.roughness)),cp.reflectance);
+	float RF = lerp(1,lerp(1,min(1.6,pow(saturate(1.468-NoV),5)+0.23),square(cp.roughness)),cp.reflectance);
 	
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 		
