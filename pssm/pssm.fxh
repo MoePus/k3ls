@@ -98,6 +98,7 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	
 	
 	float sdrate = 30000.0 / 4.0 - 0.05;
+	sdrate = (1+3*shadowPlus)*sdrate;
 	
 	float shadow = 0;
 	shadow += CalcLight(fCasterDepth[0], receiverDepth, sdrate);
