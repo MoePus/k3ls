@@ -1,0 +1,159 @@
+texture SMAAareaTex <
+    string ResourceName = "SMAA\\AreaTex.dds"; 
+>;
+texture SMAAsearchTex <
+    string ResourceName = "SMAA\\SearchTex.dds"; 
+>;
+
+#define colorTexG MRTSamp
+
+#define depthTex sumDepthSamp
+
+#define edgesTex Blur4WorkBuff0Sampler
+
+#define blendTex Blur4WorkBuff1Sampler
+
+sampler areaTex  = sampler_state {
+    texture = <SMAAareaTex>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+	MIPFILTER = NONE;
+    ADDRESSU  = CLAMP;  
+    ADDRESSV  = CLAMP;
+};
+
+sampler searchTex  = sampler_state {
+    texture = <SMAAsearchTex>;
+    MINFILTER = LINEAR;
+    MAGFILTER = LINEAR;
+	MIPFILTER = NONE;
+    ADDRESSU  = CLAMP;  
+    ADDRESSV  = CLAMP;
+};
+
+/**
+ * Function wrappers
+ */
+void DX9_SMAAEdgeDetectionVS(inout float4 position : POSITION,
+                             inout float2 texcoord : TEXCOORD0,
+                             out float4 offset[3] : TEXCOORD1) {
+    SMAAEdgeDetectionVS(texcoord, offset);
+}
+
+void DX9_SMAABlendingWeightCalculationVS(inout float4 position : POSITION,
+                                         inout float2 texcoord : TEXCOORD0,
+                                         out float2 pixcoord : TEXCOORD1,
+                                         out float4 offset[3] : TEXCOORD2) {
+    SMAABlendingWeightCalculationVS(texcoord, pixcoord, offset);
+}
+
+void DX9_SMAANeighborhoodBlendingVS(inout float4 position : POSITION,
+                                    inout float2 texcoord : TEXCOORD0,
+                                    out float4 offset : TEXCOORD1) {
+    SMAANeighborhoodBlendingVS(texcoord, offset);
+}
+
+
+float4 DX9_SMAALumaEdgeDetectionPS(float4 position : SV_POSITION,
+                                   float2 texcoord : TEXCOORD0,
+                                   float4 offset[3] : TEXCOORD1,
+                                   uniform sampler2D colorGammaTex) : COLOR {
+    return float4(SMAALumaEdgeDetectionPS(texcoord, offset, colorGammaTex),0,1);
+}
+
+/*
+float4 DX9_SMAADepthEdgeDetectionPS(float4 position : SV_POSITION,
+                                    float2 texcoord : TEXCOORD0,
+                                    float4 offset[3] : TEXCOORD1,
+                                    uniform sampler2D depthTex) : COLOR {
+    return SMAADepthEdgeDetectionPS(texcoord, offset, depthTex);
+}
+*/
+
+float4 DX9_SMAABlendingWeightCalculationPS(float4 position : SV_POSITION,
+                                           float2 texcoord : TEXCOORD0,
+                                           float2 pixcoord : TEXCOORD1,
+                                           float4 offset[3] : TEXCOORD2,
+                                           uniform sampler2D edgesTex, 
+                                           uniform sampler2D areaTex, 
+                                           uniform sampler2D searchTex) : COLOR {
+    return SMAABlendingWeightCalculationPS(texcoord, pixcoord, offset, edgesTex, areaTex, searchTex, 0);
+}
+
+float4 DX9_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
+                                      float2 texcoord : TEXCOORD0,
+                                      float4 offset : TEXCOORD1,
+                                      uniform sampler2D colorTex,
+                                      uniform sampler2D blendTex) : COLOR {
+    float4 color = SMAANeighborhoodBlendingPS(texcoord, offset, colorTex, blendTex);
+	return float4(linear_to_srgb(color.xyz), 1);
+}
+
+
+#define SMAA_PASS_ES \
+    pass LumaEdgeDetection < string Script= "Draw=Buffer;"; >{ \
+        VertexShader = compile vs_3_0 DX9_SMAAEdgeDetectionVS(); \
+        PixelShader = compile ps_3_0 DX9_SMAALumaEdgeDetectionPS(colorTexG); \
+        ZEnable = false;         \
+        AlphaBlendEnable = false; \
+        AlphaTestEnable = false; \
+        StencilEnable = true; \
+        StencilPass = REPLACE; \
+        StencilRef = 1; \
+    } \
+	pass BlendWeightCalculation < string Script= "Draw=Buffer;"; >{ \
+        VertexShader = compile vs_3_0 DX9_SMAABlendingWeightCalculationVS(); \
+        PixelShader = compile ps_3_0 DX9_SMAABlendingWeightCalculationPS(edgesTex, areaTex, searchTex); \
+        ZEnable = false; \
+        AlphaBlendEnable = false; \
+        AlphaTestEnable = false; \
+        StencilEnable = true; \
+        StencilPass = KEEP; \
+        StencilFunc = EQUAL; \
+        StencilRef = 1; \
+    } \
+	pass NeighborhoodBlending < string Script= "Draw=Buffer;"; >{ \
+        VertexShader = compile vs_3_0 DX9_SMAANeighborhoodBlendingVS(); \
+        PixelShader = compile ps_3_0 DX9_SMAANeighborhoodBlendingPS(colorTexG, blendTex); \
+        AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+    }
+
+
+
+#define DO_SMAA \
+		"RenderColorTarget0=Blur4WorkBuff0;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=LumaEdgeDetection;" \
+		 \
+		"RenderColorTarget0=Blur4WorkBuff1;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=BlendWeightCalculation;" \
+		 \
+		"RenderColorTarget0=;" \
+    	"RenderDepthStencilTarget=;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=NeighborhoodBlending;"
+
+/*
+technique DepthEdgeDetection {
+    pass DepthEdgeDetection {
+        VertexShader = compile vs_3_0 DX9_SMAAEdgeDetectionVS();
+        PixelShader = compile ps_3_0 DX9_SMAADepthEdgeDetectionPS(depthTex);
+        ZEnable = false;        
+        SRGBWriteEnable = false;
+        AlphaBlendEnable = false;
+        AlphaTestEnable = false;
+
+        // We will be creating the stencil buffer for later usage.
+        StencilEnable = true;
+        StencilPass = REPLACE;
+        StencilRef = 1;
+    }
+}
+*/

@@ -1,4 +1,5 @@
 #define SHADOW_QUALITY 4
+#define AA_QUALITY 2
 
 #define CasterAlphaThreshold 180
 #define RecieverAlphaThreshold 0.4
@@ -15,6 +16,26 @@
 #   define SHADOW_MAP_SIZE 10000
 #endif
 
+#if AA_QUALITY == 1
+#	define IK_AA
+#elif AA_QUALITY == 3
+#	define USE_SMAA
+#	define SMAA_PRESET_LOW
+#elif AA_QUALITY == 3
+#	define USE_SMAA
+#	define SMAA_PRESET_MEDIUM
+#elif AA_QUALITY == 4
+#	define USE_SMAA
+#	define SMAA_PRESET_HIGH
+#else
+#	define USE_SMAA
+#	define SMAA_PRESET_ULTRA
+#endif
+
+#ifdef USE_SMAA
+#define SMAA_RT_METRICS float4(ViewportOffset2, ViewportSize)
+#define SMAA_HLSL_3
+#endif
 
 #define WARP_RANGE 8
 #define SHADOW_MAP_OFFSET  (1.0 / SHADOW_MAP_SIZE)

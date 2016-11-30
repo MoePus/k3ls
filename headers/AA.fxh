@@ -47,5 +47,5 @@ float4 Antialias_PS( float2 Tex: TEXCOORD0) : COLOR
 	float3 cd = tex2D(MRTSamp, Tex + vd * ViewportOffset2).rgb;
 	float3 col = (center.rgb + cl + cr + cu + cd) * (1.0 / 5.0);
 
-	return float4(lerp(center.rgb, col, w), 1);
+	return float4(linear_to_srgb(lerp(center.rgb, col, w)), 1);
 }

@@ -8,7 +8,6 @@ float SSS##_id				: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; strin
 float translucency##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "translucency"; >; \
 float selfLighting##_id		: CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "selfLighting"; >;
 
-
 GENController(0)
 GENController(1)
 GENController(2)
@@ -19,22 +18,33 @@ GENController(6)
 GENController(7)
 GENController(8)
 
+#define controllerAmount 10
+#define controllerDim    8 
+texture2D controllerBuff : RENDERCOLORTARGET <
+	int Width = controllerDim;
+	int Height = controllerAmount;
+	string Format = "R16F";
+>;
+sampler2D controllerBuffSamp = sampler_state {
+    texture = <controllerBuff>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
 /*
-#define GENCon1DVector(_id) \
-static float Con1D##_id[7] = { roughness##_id , metalness##_id , varnishAlpha##_id , varnishRough##_id , SSS##_id , translucency##_id , selfLighting##_id };
+void buffControllers(float2 Tex: TEXCOORD0,out float4 param : COLOR0)
+{
+#define putParams(_cid) \
+float3x3 params##_cid = { \
+roughness##_cid,reflectance##_cid,metalness##_cid, \
+varnishAlpha##_cid,varnishRough##_cid,SSS##_cid, \
+translucency##_cid,selfLighting##_cid,0};
 
-GENCon1DVector(0)
-GENCon1DVector(1)
-GENCon1DVector(2)
-GENCon1DVector(3)
-GENCon1DVector(4)
-GENCon1DVector(5)
-GENCon1DVector(6)
-GENCon1DVector(7)
-GENCon1DVector(8)
+putParams(0);
 
-static const float Con2D[7][9] = GENCon2DVector;
-*/
+}*/
 
 struct ConParam
 {
@@ -48,7 +58,7 @@ struct ConParam
 	float selfLighting;
 };
 
-void getConParams(float id,out ConParam params)
+inline void getConParams(float id,out ConParam params)
 {
 #define fetchParams(_cid) \
 { \

@@ -75,19 +75,6 @@ sampler2D specularSamp = sampler_state {
     AddressV = CLAMP;
 };
 
-texture2D ALPHA_FRONT_Light: RENDERCOLORTARGET <
-    float2 ViewPortRatio = {1.0,1.0};
-	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "A16B16G16R16F";
->;
-sampler ALPHA_FRONT_Light_GbufferSamp = sampler_state {
-    texture = <ALPHA_FRONT_Light>;
-    MinFilter = POINT;
-	MagFilter = POINT;
-	MipFilter = NONE;
-    AddressU  = CLAMP;
-	AddressV  = CLAMP;
-};
 texture2D sumDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
@@ -147,17 +134,8 @@ float4 sumDepth_PS(float2 Tex: TEXCOORD0) : COLOR
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
-	float3 N = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).w);
-	float3 N2 = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xyz;
-
-	if(length(N2)>0.6 && Depth2<=color.x)
-	{
-		N = N2;
-	}
 	
-	
-	return float4(N,1);
+	return color;
 }
 
 inline float3 CalcTranslucency(float s)
@@ -172,7 +150,7 @@ inline float3 CalcTranslucency(float s)
 		+ float3(0.078f, 0.0f, 0.0f) * exp(dd / 7.41f);
 }
 
-void PBR_shade(float id,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
+inline void PBR_shade(float id,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
 out float4 odiff,
 out float4 ospec
 )
@@ -252,7 +230,7 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	
 	odiff.xyz += (1-albedo.a)*sky.xyz;
 	
-	float4 alphaLight = tex2D(ALPHA_FRONT_Light_GbufferSamp,Tex);
+	float4 alphaLight = tex2D(Blur4WorkBuff1Sampler,Tex);
 	
 	float Depth = tex2D(sumDepthSamp,Tex).x;
 	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
@@ -305,6 +283,12 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
     	"Pass=PSSMBilateralBlurY;"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef USE_SMAA
+#include "SMAA\\SMAA.h"
+#include "SMAA\\SMAA.ready"
+#endif
+
+
 float4 ClearColor = {0,0,0,0};
 float ClearDepth  = 1.0;
 
@@ -334,7 +318,7 @@ string Script =
 		
 		BLUR_PSSM_AO
 		
-		"RenderColorTarget0=ALPHA_FRONT_Light;"
+		"RenderColorTarget0=Blur4WorkBuff1;"
 		"RenderDepthStencilTarget=mrt_Depth;"
 		"Pass=PBRALPHAFRONTPRECOMP;"
 		
@@ -386,20 +370,28 @@ string Script =
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=ToneMapping;"
 		
+		#ifndef USE_SMAA
 		"RenderColorTarget0=;"
     	"RenderDepthStencilTarget=;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=AA;"  
+		#else
+		DO_SMAA
+		#endif
 			
 		ClearGbuffer
 		;
 >{
+	#ifdef USE_SMAA
+	SMAA_PASS_ES
+	#endif
+	
 	pass TEST < string Script= "Draw=Buffer;"; > 
 	{		
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(sumDepthSamp);
+		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff1Sampler);
 	}
 	
 	pass SUMDepth < string Script= "Draw=Buffer;"; > {

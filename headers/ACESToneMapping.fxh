@@ -171,7 +171,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
 	
-	return float4(linear_to_srgb(outColor),1);
+	return float4(outColor,1);
 }
 
 float4 DownScale_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
