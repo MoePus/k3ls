@@ -23,13 +23,13 @@ shared texture2D GBuffer_linearDepth: RENDERCOLORTARGET <
 shared texture2D GBuffer_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "A16B16G16R16F";
+	string Format = "G16R16F";
 >;
 
 shared texture2D GBuffer_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "D3DFMT_G32R32F";
+	string Format = "G32R32F";
 >;
 //////////////////////NO ALPHA/////////////////////////
 
@@ -49,13 +49,13 @@ shared texture2D GBuffer_ALPHA_FRONT_linearDepth: RENDERCOLORTARGET <
 shared texture2D GBuffer_ALPHA_FRONT_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "A16B16G16R16F";
+	string Format = "G16R16F";
 >;
 
 shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "D3DFMT_A32B32G32R32F";
+	string Format = "G32R32F";
 >;
 /////////////////////ALPHA FRAG////////////////////////
 

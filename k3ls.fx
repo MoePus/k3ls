@@ -5,8 +5,8 @@ float Script : STANDARDSGLOBAL <
 > = 0.8;
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\environment.fxh"
+#include "headers\\workBuff.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#define RGB2LUM float3(0.2125, 0.7154, 0.0721)
 #define PI  3.14159265359f
 #define invPi 0.31830988618
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ inline float3 CalcTranslucency(float s)
 		+ float3(0.078f, 0.0f, 0.0f) * exp(dd / 7.41f);
 }
 
-void PBR_shade(float id,float2 Tex,float3 wpos,float4 albedo,float3 spa,float3 normal,
+void PBR_shade(float id,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
 out float4 odiff,
 out float4 ospec
 )
@@ -238,10 +238,10 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	float4 sky = tex2D(MRTSamp,Tex);
 
 	float4 albedo = tex2D(AlbedoGbufferSamp,Tex);
-	float4 spaMap = tex2D(SpaGbufferSamp,Tex);
+	float2 spaMap = tex2D(SpaGbufferSamp,Tex).xy;
 	float2 normalMap = tex2D(NormalGbufferSamp,Tex).xy;
-	float3 spa = spaMap.xyz;
-	float3 normal = float3(normalMap.xy,spaMap.w);
+	float spa = spaMap.x;
+	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
 	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
 	float id = linearDepthXid.y;
@@ -272,8 +272,10 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 {
 	float4 albedo = tex2D(Albedo_ALPHA_FRONT_GbufferSamp,Tex);
 	albedo.xyz/=albedo.a;
-	float3 spa = tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).xyz;
-	float3 normal = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xyz;
+	float2 spaMap = tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).xy;
+	float2 normalMap = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy;
+	float spa = spaMap.x;
+	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy;
 	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
 	float id = linearDepthXid.y;
@@ -290,7 +292,7 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
-		"RenderColorTarget0=BlurWorkBuff;" \
+		"RenderColorTarget0=Blur2WorkBuff0;" \
     	"RenderDepthStencilTarget=mrt_Depth;" \
 		"ClearSetDepth=ClearDepth;Clear=Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \
@@ -438,7 +440,7 @@ string Script =
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
         VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(BlurWorkBuffSampler,float2(0.0f, ViewportOffset2.y));
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(Blur2WorkBuff0Sampler,float2(0.0f, ViewportOffset2.y));
     }
 
 	

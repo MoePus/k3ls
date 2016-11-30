@@ -21,7 +21,7 @@
 #define SELFSHADOW_COS_MAX 0.00872653549837393496488821397358 //cos 89.5 degree
 
 #define Epsilon 0.0001
-
+#define RGB2LUM float3(0.2125, 0.7154, 0.0721)
 
 // ¥Ñ¥é¥á©`¥¿ÐûÑÔ
 float2 ViewportSize : VIEWPORTPIXELSIZE;

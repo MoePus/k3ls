@@ -1,16 +1,3 @@
-texture BlurWorkBuff : RENDERCOLORTARGET <
-    float2 ViewportRatio = {1.0, 1.0};
-    string Format = "G16R16F";
->;
-sampler BlurWorkBuffSampler = sampler_state {
-    texture = <BlurWorkBuff>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
-    AddressU  = CLAMP;
-    AddressV  = CLAMP;
-};
-
 #define BLUR_COUNT 6
 
 float BilateralWeight(float r, float depth, float center_d, float sharpness)

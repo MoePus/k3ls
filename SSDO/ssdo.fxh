@@ -16,10 +16,10 @@ static float InvDepthLength6 = 1.0 / pow(DepthLength, 6);
 #define	SSAORayCount	24
 static float2 SSAORadiusB = (64.0 / 1024.0) / SSAORayCount * float2(1, ViewportSize.x/ViewportSize.y);
 
-inline float GetOccRate(float2 texCoord, float3 WPos, float3 N)
+inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 {
-	float Depth = tex2D(sumDepthSamp,texCoord).x;
-	float3 RayPos = mul(coord2WorldViewPos(texCoord,Depth),(float3x3)ViewInverse);
+	float Depth = tex2D(sumDepthSamp,Tex).x;
+	float3 RayPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
 	const float SSAO_BIAS = 0.01;
 
 	float3 v = RayPos - WPos;
@@ -39,20 +39,20 @@ float hash12(float2 p)
     return frac((p3.x + p3.y) * p3.z);
 }
 
-float4 PS_AO( float2 texCoord: TEXCOORD0 ) : COLOR
+float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 {
-	float Depth = tex2D(sumDepthSamp,texCoord).x;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,texCoord).x;
-	float3 N = float3(tex2D(NormalGbufferSamp,texCoord).xy,tex2D(SpaGbufferSamp,texCoord).w);
-	float3 N2 = tex2D(Normal_ALPHA_FRONT_GbufferSamp,texCoord).xyz;
+	float Depth = tex2D(sumDepthSamp,Tex).x;
+	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
+	float3 N = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
+	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
 	if(length(N2)>0.6  && Depth2<=Depth)
 	{
 		N = N2;
 	}
-	float3 WPos = mul(coord2WorldViewPos(texCoord,Depth),(float3x3)ViewInverse);
+	float3 WPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
 
 	float radMul = 1.0 / SSAORayCount * (3.14 * 2.0 * 7.0);
-	float radAdd = hash12(texCoord*Depth*ftime) * (PI * 2.0);
+	float radAdd = hash12(Tex*Depth*ftime) * (PI * 2.0);
 
 	float sum = 0.0;
 	float4 col = 0;
@@ -64,7 +64,7 @@ float4 PS_AO( float2 texCoord: TEXCOORD0 ) : COLOR
 		float2 sc;
 		sincos(j * radMul + radAdd, sc.x, sc.y);
 		float2 r = j * SSAORadiusB;
-		float2 uv = sc * r + texCoord;
+		float2 uv = sc * r + Tex;
 
 		float ao = GetOccRate(uv, WPos, N);
 		sum += ao;

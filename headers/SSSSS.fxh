@@ -30,7 +30,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
 
 
 #define SSS_2XSamp diffuseSamp
-#define SSS_2BSamp SpaGbufferSamp
+#define SSS_2BSamp Blur4WorkBuff0Sampler
 #define SSS_2YSamp MRTSamp
 
 GENBlurPS(Blur_PSX,SSS_2XSamp,step.x)
@@ -57,7 +57,7 @@ float4 Blend_PS(float2 Tex: TEXCOORD0 ) : COLOR
 		"RenderDepthStencilTarget=mrt_Depth;" \
     	"Pass=BLURX;" \
 		\
-		"RenderColorTarget0=GBuffer_spa;" \
+		"RenderColorTarget0=Blur4WorkBuff0;" \
 		"RenderDepthStencilTarget=mrt_Depth;" \
     	"Pass=BLURY;" \
 		\
