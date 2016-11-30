@@ -27,7 +27,7 @@ inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 	float dotVN = max(dot(v, N) - SSAO_BIAS, 0.0f);
 	float f = max(DepthLength * DepthLength - distance2, 0.0f);
 	float f3 = f * f * f;
-	float ao = f3 * InvDepthLength6 * dotVN / (distance2 + 1e-3);
+	float ao = (1 + 3 * aoPlus) * f3 * InvDepthLength6 * dotVN / (distance2 + 1e-3);
 
 	return min(ao, 1.0);
 }

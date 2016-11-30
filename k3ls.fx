@@ -181,7 +181,7 @@ out float4 ospec
 	
 	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
 	float ShadowMapVal = saturate(shadowMap.x);
-	float ao = saturate(1-(1-saturate(shadowMap.y))*(1+aoPlus));
+	float ao = saturate(shadowMap.y);
 	
 	float3 view = CameraPosition - wpos;
 	float3 viewNormal = normalize(view);
