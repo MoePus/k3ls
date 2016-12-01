@@ -9,7 +9,7 @@ texture SMAAsearchTex <
 
 #define depthTex sumDepthSamp
 
-#define edgesTex Blur4WorkBuff0Sampler
+#define edgesTex Blur2WorkBuff0Sampler
 
 #define blendTex Blur4WorkBuff1Sampler
 
@@ -94,7 +94,7 @@ float4 DX9_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
     pass LumaEdgeDetection < string Script= "Draw=Buffer;"; >{ \
         VertexShader = compile vs_3_0 DX9_SMAAEdgeDetectionVS(); \
         PixelShader = compile ps_3_0 DX9_SMAALumaEdgeDetectionPS(colorTexG); \
-        ZEnable = false;         \
+        ZEnable = false; \
         AlphaBlendEnable = false; \
         AlphaTestEnable = false; \
         StencilEnable = true; \
@@ -123,7 +123,7 @@ float4 DX9_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
 
 
 #define DO_SMAA \
-		"RenderColorTarget0=Blur4WorkBuff0;" \
+		"RenderColorTarget0=Blur2WorkBuff0;" \
     	"RenderDepthStencilTarget=mrt_Depth;" \
 		"ClearSetDepth=ClearDepth;Clear=Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \

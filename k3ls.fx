@@ -106,7 +106,13 @@ struct POST_OUTPUT {
 #include "headers\\SSSSS.fxh"
 #include "headers\\fog.fxh"
 #include "headers\\ACESToneMapping.fxh"
+///////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef USE_SMAA
+#include "SMAA\\SMAA.h"
+#include "SMAA\\SMAA.ready"
+#else
 #include "headers\\AA.fxh"
+#endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "pssm\\pssm.fxh"
 #include "ssdo\\ssdo.fxh"
@@ -282,13 +288,6 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 		"ClearSetColor=ClearColor;Clear=Color;" \
     	"Pass=PSSMBilateralBlurY;"
 ///////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef USE_SMAA
-#include "SMAA\\SMAA.h"
-#include "SMAA\\SMAA.ready"
-#endif
-
-
 float4 ClearColor = {0,0,0,0};
 float ClearDepth  = 1.0;
 
@@ -385,6 +384,8 @@ string Script =
 >{
 	#ifdef USE_SMAA
 	SMAA_PASS_ES
+	#else
+	IKAA_PASS
 	#endif
 	
 	pass TEST < string Script= "Draw=Buffer;"; > 
@@ -520,16 +521,6 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 Blend_PS();
     }
-	
-	pass AA < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 Antialias_PS();
-    }
-
 	pass FOGBLUR < string Script= "Draw=Buffer;"; > 
 	{
 		AlphaBlendEnable = FALSE;

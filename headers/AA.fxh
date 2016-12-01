@@ -49,3 +49,12 @@ float4 Antialias_PS( float2 Tex: TEXCOORD0) : COLOR
 
 	return float4(linear_to_srgb(lerp(center.rgb, col, w)), 1);
 }
+#define IKAA_PASS \
+	pass AA < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+        PixelShader  = compile ps_3_0 Antialias_PS(); \
+    }
