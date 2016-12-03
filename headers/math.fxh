@@ -21,3 +21,10 @@ float3 linear_to_srgb(float3 rgb)
 	const float ALPHA = 0.055f;
 	return rgb < 0.0031308f ? 12.92f * rgb : (1 + ALPHA) * pow(rgb, 1 / 2.4f) - ALPHA;
 }
+
+float hash12(float2 p)
+{
+	float3 p3  = frac(float3(p.xyx) * float3(.1031,.11369,.13787));
+    p3 += dot(p3, p3.yzx + 19.19);
+    return frac((p3.x + p3.y) * p3.z);
+}

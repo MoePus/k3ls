@@ -1,6 +1,10 @@
 texture2D AOWorkMap : RENDERCOLORTARGET <
 	float2 ViewPortRatio = {1.0, 1.0};
+	#if SSDO_COLOR_BLEEDING > 0
+	string Format = "A16B16G16R16F";
+	#else
 	string Format = "R16F";
+	#endif
 >;
 sampler AOWorkMapSampler = sampler_state {
     texture = <AOWorkMap>;
@@ -31,16 +35,12 @@ inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 	return min(ao, 1.0);
 }
 
-float hash12(float2 p)
-{
-	float3 p3  = frac(float3(p.xyx) * float3(.1031,.11369,.13787));
-    p3 += dot(p3, p3.yzx + 19.19);
-    return frac((p3.x + p3.y) * p3.z);
-}
-
 float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 {
 	float Depth = tex2D(sumDepthSamp,Tex).x;
+	if(Depth<1+Epsilon)
+		return float4(0,0,0,0);
+	
 	float3 N = tex2D(sumNormalSamp,Tex).xyz;
 	float3 WPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
 
@@ -48,10 +48,15 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float radAdd = hash12(Tex*Depth*ftime) * (PI * 2.0);
 
 	float sum = 0.0;
-	float4 col = 0;
+	float3 col = 0;
 
 	// MEMO: unrollするとレジスタを使い過ぎてコンパイルが通らない
+	// note: do not use global const variables in shader.
+	#if SSDO_COLOR_BLEEDING > 0
+	[loop]
+	#else
 	[unroll]
+	#endif
 	for(int j = 0; j < SSAORayCount; j++)
 	{
 		float2 sc;
@@ -61,11 +66,22 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 
 		float ao = GetOccRate(uv, WPos, N);
 		sum += ao;
+		#if SSDO_COLOR_BLEEDING > 0
+		float3 bouns = tex2D(AlbedoGbufferSamp,uv).xyz;
+		float MINofBouns = min(min(bouns.x,bouns.y),bouns.z)*2;
+		float MaxofPounds = max(max(bouns.x-MINofBouns,bouns.y-MINofBouns),bouns.z-MINofBouns);
+		if(MaxofPounds>0)
+		{
+			bouns*=(1 + srgb2linear(tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz));
+			col += min(0.3,ao) * bouns * invPi * LightAmbient;
+		}
+			
+		#endif
 	}
 
 	// 元のSAOのソースでは、ddx/ddyでクアッド単位の
 	// 補正を行っていた。
 
 	float s = saturate(1.0 - sum * (1.0 / SSAORayCount));
-	return float4(s.xxx,1);
+	return float4(s,col/ SSAORayCount);
 }

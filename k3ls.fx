@@ -117,6 +117,9 @@ struct POST_OUTPUT {
 #include "headers\\GbufferSamplers.fxh"
 #include "headers\\GbufferClear.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
+#include "pssm\\pssm.fxh"
+#include "ssdo\\ssdo.fxh"
+#include "headers\\blur.fxh"
 #include "headers\\SSSSS.fxh"
 #include "headers\\fog.fxh"
 #include "headers\\ACESToneMapping.fxh"
@@ -128,10 +131,6 @@ struct POST_OUTPUT {
 #include "headers\\AA.fxh"
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#include "pssm\\pssm.fxh"
-#include "ssdo\\ssdo.fxh"
-#include "headers\\blur.fxh"
-///////////////////////////////////////////////////////////////////////////////////////////////
 POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
 {
     POST_OUTPUT Out = (POST_OUTPUT)0;
@@ -140,6 +139,7 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
     Out.Tex = Tex + ViewportOffset;
     return Out;
 }
+
 void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLOR1)
 {
 	float Depth1 = tex2D(DepthGbufferSamp,Tex).x;
@@ -239,7 +239,7 @@ out float4 ospec
 	odiff.xyz *= 1-FOG_S2inv;
 	ospec.xyz *= 1-FOG_S2inv;
 }
-
+						
 void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
@@ -311,6 +311,21 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 		"ClearSetColor=ClearColor;Clear=Color;" \
     	"Pass=PSSMBilateralBlurY;"
 ///////////////////////////////////////////////////////////////////////////////////////////////
+#if SSDO_COLOR_BLEEDING > 0
+#define BLUR_COLOR_BLEEDING \
+		"RenderColorTarget0=Blur4WorkBuff0;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=ColorBleedingBilateralBlurX;" \
+		\
+		"RenderColorTarget0=AOWorkMap;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=ColorBleedingBilateralBlurY;"
+#endif
+///////////////////////////////////////////////////////////////////////////////////////////////
 float4 ClearColor = {0,0,0,0};
 float ClearDepth  = 1.0;
 
@@ -355,8 +370,12 @@ string Script =
     	"Pass=PBRPRECOMP;"
 		"RenderColorTarget1=;"
 		"RenderColorTarget2=;" //mono:Do not forget to free it.
-				
-		SSSSS
+								
+		SSSSS		
+		
+		#if SSDO_COLOR_BLEEDING > 0
+		BLUR_COLOR_BLEEDING
+		#endif
 		
 		"RenderColorTarget0=lumHalfTexture;"
 		"RenderDepthStencilTarget=lumHalfDepth;"
@@ -404,6 +423,12 @@ string Script =
 		DO_SMAA
 		#endif
 		
+		/*"RenderColorTarget0=;"
+    	"RenderDepthStencilTarget=;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=TEST;"  */
+	
 		ClearGbuffer
 		;
 >{
@@ -417,7 +442,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff1Sampler);
+		PixelShader  = compile ps_3_0 COPY_PS(AOWorkMapSampler);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
@@ -460,8 +485,23 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 ShadowMapBlurAxyToTxy_PS(Blur2WorkBuff0Sampler,float2(0.0f, ViewportOffset2.y));
     }
-
+	#if SSDO_COLOR_BLEEDING > 0
+	pass ColorBleedingBilateralBlurX < string Script= "Draw=Buffer;"; > {
+        AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 ShadowMapBlurAyzwToTxyz_PS(AOWorkMapSampler,float2(ViewportOffset2.x, 0.0f));
+    }
 	
+	pass ColorBleedingBilateralBlurY < string Script= "Draw=Buffer;"; > {
+        AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 ShadowMapBlurAxyzToTxyz_PS(Blur4WorkBuff0Sampler,float2(0.0f, ViewportOffset2.y));
+    }
+	#endif
 	pass PBRPRECOMP < string Script= "Draw=Buffer;"; > 
 	{
 		AlphaBlendEnable = FALSE;

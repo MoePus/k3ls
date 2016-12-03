@@ -155,9 +155,12 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	if(blurredDiffuse.a > Epsilon)
 		fog *= saturate(dot(CameraDirection,normalize(lightPosProj.xyz)));
 	
-	
-	
+	#if SSDO_COLOR_BLEEDING > 0
+	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
+	float3 ocolor = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI) + fog;
+	#else
 	float3 ocolor = blurredDiffuse.xyz + specular + fog;
+	#endif
 	
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = adaptedLum[0][0].r;

@@ -89,3 +89,76 @@ float4 ShadowMapBlurAxyToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D sour
 
     return float4(sum.xy / sum.z,0,1);
 }
+
+
+float4 ShadowMapBlurAyzwToTxyz_PS(float2 coord : TEXCOORD0, uniform sampler2D source, uniform float2 offset) : COLOR
+{
+    float3 center = tex2D(source, coord).yzw;
+
+	float2 centerDepth = tex2D(sumDepthSamp,coord).xy;
+
+    float4 sum = float4(center, 1);
+
+    float2 offset1 = coord + offset;
+    float2 offset2 = coord - offset;
+	float sharpness = getBaseSharpness(centerDepth.x);
+    [unroll]
+    for(int i = 1; i < BLUR_COUNT; i++)
+    {        
+        float3 l = tex2D(source, offset1).yzw;
+		float3 r = tex2D(source, offset2).yzw;
+
+		float2 s1Depth = tex2D(sumDepthSamp, offset1).xy;
+        float2 s2Depth = tex2D(sumDepthSamp, offset2).xy;
+		
+        float bilateralWeight1 = BilateralWeight(i, s1Depth.x, centerDepth.x, sharpness + getExtraSharpness(s1Depth.y,centerDepth.y));
+        float bilateralWeight2 = BilateralWeight(i, s2Depth.x, centerDepth.x, sharpness + getExtraSharpness(s2Depth.y,centerDepth.y));
+        
+        sum.xyz += l * bilateralWeight1;
+        sum.xyz += r * bilateralWeight2;
+
+        sum.w += bilateralWeight1;
+        sum.w += bilateralWeight2;
+        
+        offset1 += offset;
+        offset2 -= offset;
+    }
+
+    return float4(sum.xyz / sum.w,1);
+}
+
+float4 ShadowMapBlurAxyzToTxyz_PS(float2 coord : TEXCOORD0, uniform sampler2D source, uniform float2 offset) : COLOR
+{
+    float3 center = tex2D(source, coord).xyz;
+
+	float2 centerDepth = tex2D(sumDepthSamp,coord).xy;
+
+    float4 sum = float4(center, 1);
+
+    float2 offset1 = coord + offset;
+    float2 offset2 = coord - offset;
+	float sharpness = getBaseSharpness(centerDepth.x);
+    [unroll]
+    for(int i = 1; i < BLUR_COUNT; i++)
+    {        
+        float3 l = tex2D(source, offset1).xyz;
+		float3 r = tex2D(source, offset2).xyz;
+
+		float2 s1Depth = tex2D(sumDepthSamp, offset1).xy;
+        float2 s2Depth = tex2D(sumDepthSamp, offset2).xy;
+		
+        float bilateralWeight1 = BilateralWeight(i, s1Depth.x, centerDepth.x, sharpness + getExtraSharpness(s1Depth.y,centerDepth.y));
+        float bilateralWeight2 = BilateralWeight(i, s2Depth.x, centerDepth.x, sharpness + getExtraSharpness(s2Depth.y,centerDepth.y));
+        
+        sum.xyz += l * bilateralWeight1;
+        sum.xyz += r * bilateralWeight2;
+
+        sum.w += bilateralWeight1;
+        sum.w += bilateralWeight2;
+        
+        offset1 += offset;
+        offset2 -= offset;
+    }
+
+    return float4(sum.xyz / sum.w,1);
+}
