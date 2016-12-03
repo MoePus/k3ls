@@ -88,6 +88,20 @@ sampler sumDepthSamp = sampler_state {
     AddressU  = CLAMP;
 	AddressV  = CLAMP;
 };
+
+texture2D sumNormal: RENDERCOLORTARGET <
+    float2 ViewPortRatio = {1.0,1.0};
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "A32B32G32R32F";
+>;
+sampler sumNormalSamp = sampler_state {
+    texture = <sumNormal>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////
 struct POST_OUTPUT {
     float4 Pos      : POSITION;   
@@ -126,16 +140,25 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
     Out.Tex = Tex + ViewportOffset;
     return Out;
 }
-float4 sumDepth_PS(float2 Tex: TEXCOORD0) : COLOR
+void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLOR1)
 {
-	float Depth = tex2D(DepthGbufferSamp,Tex).x;
+	float Depth1 = tex2D(DepthGbufferSamp,Tex).x;
 	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
-	bool T = Depth <= Epsilon || ( Depth2 > Epsilon &&  Depth2<Depth);
+	
+	float3 N1 = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
+	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
+	
+	bool T = Depth1 <= Epsilon || ( Depth2 > Epsilon &&  Depth2<Depth1);
 	if(T)
 	{
-		Depth = Depth2;
+		Depth = float4(Depth2,0,0,1);
+		N = float4(N2,1);
+	}else
+	{
+		Depth = float4(Depth1,0,0,1);
+		N = float4(N1,1);
 	}
-	return Depth;
+	return;
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
@@ -302,10 +325,12 @@ string Script =
         "ScriptExternal=Color;"
 
 		"RenderColorTarget0=sumDepth;"
+		"RenderColorTarget1=sumNormal;"
     	"RenderDepthStencilTarget=mrt_Depth;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=SUMDepth;"
+    	"Pass=SUMGDN;"
+		"RenderColorTarget1=;"
 		
 		SSSHADOWOBJ
 		
@@ -395,12 +420,12 @@ string Script =
 		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff1Sampler);
 	}
 	
-	pass SUMDepth < string Script= "Draw=Buffer;"; > {
+	pass SUMGDN < string Script= "Draw=Buffer;"; > {
 		AlphaBlendEnable = FALSE;
 		ZFUNC=ALWAYS;
 		ALPHAFUNC=ALWAYS;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 sumDepth_PS();
+		PixelShader  = compile ps_3_0 sumG_PS();
 	}
 	
 	pass SSShadow < string Script= "Draw=Buffer;"; > {

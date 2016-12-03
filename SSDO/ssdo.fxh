@@ -41,13 +41,7 @@ float hash12(float2 p)
 float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 {
 	float Depth = tex2D(sumDepthSamp,Tex).x;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
-	float3 N = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
-	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
-	if(length(N2)>0.6  && Depth2<=Depth)
-	{
-		N = N2;
-	}
+	float3 N = tex2D(sumNormalSamp,Tex).xyz;
 	float3 WPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
 
 	float radMul = 1.0 / SSAORayCount * (3.14 * 2.0 * 7.0);
