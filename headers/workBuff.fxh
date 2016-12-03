@@ -10,6 +10,14 @@ sampler Blur2WorkBuff0Sampler = sampler_state {
     AddressU  = CLAMP;
     AddressV  = CLAMP;
 };
+sampler Blur2WorkBuff0SamplerP = sampler_state {
+    texture = <Blur2WorkBuff0>;
+    MinFilter = POINT;
+    MagFilter = POINT;
+    MipFilter = NONE;
+    AddressU  = CLAMP;
+    AddressV  = CLAMP;
+};
 
 texture Blur4WorkBuff0 : RENDERCOLORTARGET <
     float2 ViewportRatio = {1.0, 1.0};

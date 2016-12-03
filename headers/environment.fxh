@@ -1,8 +1,11 @@
-#define SHADOW_QUALITY	4
-#define AA_QUALITY		2
-#define	SSAORayCount	24
-#define BLUR_COUNT		6
+#define SHADOW_QUALITY				4
+#define	SSAORayCount				24
+#define BLUR_COUNT					6
+#define AA_QUALITY					1
+#define SMAA_EDGE_DETECT_MODE		0
+#define SMAA_WEIGHT_SUBSAMPLE		2
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 #define CasterAlphaThreshold 180
 #define RecieverAlphaThreshold 0.4
 
@@ -37,6 +40,13 @@
 #ifdef USE_SMAA
 #define SMAA_RT_METRICS float4(ViewportOffset2, ViewportSize)
 #define SMAA_HLSL_3
+#endif
+
+#if SMAA_EDGE_DETECT_MODE == 0
+#define SMAA_DEPTH_THRESHOLD 0.2
+#define SMAA_EDGE_DETECT_PASS "DepthEdgeDetection"
+#else
+#define SMAA_EDGE_DETECT_PASS "LumaEdgeDetection"
 #endif
 
 #define WARP_RANGE 8

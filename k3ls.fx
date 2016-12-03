@@ -141,7 +141,7 @@ float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
 	
-	return color;
+	return float4(color.xyz,1);
 }
 
 inline float3 CalcTranslucency(float s)
@@ -368,7 +368,7 @@ string Script =
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=ToneMapping;"
-		
+			
 		#ifndef USE_SMAA
 		"RenderColorTarget0=;"
     	"RenderDepthStencilTarget=;"
@@ -378,7 +378,7 @@ string Script =
 		#else
 		DO_SMAA
 		#endif
-			
+		
 		ClearGbuffer
 		;
 >{
@@ -389,7 +389,7 @@ string Script =
 	#endif
 	
 	pass TEST < string Script= "Draw=Buffer;"; > 
-	{		
+	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
 		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff1Sampler);
