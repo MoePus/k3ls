@@ -1,5 +1,7 @@
-#define SHADOW_QUALITY 4
-#define AA_QUALITY 2
+#define SHADOW_QUALITY	4
+#define AA_QUALITY		2
+#define	SSAORayCount	24
+#define BLUR_COUNT		6
 
 #define CasterAlphaThreshold 180
 #define RecieverAlphaThreshold 0.4

@@ -13,7 +13,6 @@ sampler AOWorkMapSampler = sampler_state {
 
 const float DepthLength = 10.0;	
 static float InvDepthLength6 = 1.0 / pow(DepthLength, 6);
-#define	SSAORayCount	24
 static float2 SSAORadiusB = (64.0 / 1024.0) / SSAORayCount * float2(1, ViewportSize.x/ViewportSize.y);
 
 inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
@@ -76,4 +75,3 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float s = saturate(1.0 - sum * (1.0 / SSAORayCount));
 	return float4(s.xxx,1);
 }
-#undef	SSAORayCount
