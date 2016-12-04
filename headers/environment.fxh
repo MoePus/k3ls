@@ -2,12 +2,13 @@
 #define	SSAORayCount				24
 #define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					6
-#define AA_QUALITY					1
+#define VOLUMETRIC_FOG_SAMPLE		0
+#define AA_QUALITY					3
 #define SMAA_EDGE_DETECT_MODE		0
 #define SMAA_WEIGHT_SUBSAMPLE		2
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#define CasterAlphaThreshold 180
+#define CasterAlphaThreshold 140
 #define RecieverAlphaThreshold 0.4
 
 #if SHADOW_QUALITY == 1

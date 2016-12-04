@@ -188,31 +188,6 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	return;
 }
 
-VS_OUTPUT FOG_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
-{
-    VS_OUTPUT Out = (VS_OUTPUT)0;
-    float4 xpos = mul( Pos, ViewProjectMatrix );
-	xpos.xy/=3;
-	Out.oPos = Out.Pos = xpos;
-    Out.Tex = Tex;
-	
-    return Out;
-}
-
-float4 FOG_PS(VS_OUTPUT IN,uniform const bool useTexture):COLOR
-{
-	if (useTexture) 
-	{
-        float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
-        DiffuseColor = TexColor;
-    }
-	
-	float alpha = DiffuseColor.a;
-	
-	return float4(IN.oPos.w,0,0,(alpha>Epsilon));
-}
-
-
 #define GENTec(tecname, _mmdpass, _useTexture, _usespheremap, _usetoonmap) \
 technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap; bool UseToon = _usetoonmap;\
  string Script = \
@@ -229,13 +204,6 @@ technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; b
         "RenderColorTarget3=GBuffer_ALPHA_FRONT_normal;" \
 		"RenderDepthStencilTarget=GBuffer_depth;" \
         "Pass=Draw_ALPHA_FRONT_Object;" \
-		 \
-		"RenderColorTarget0=FOG_DEPTH;" \
-        "RenderColorTarget1=;" \
-        "RenderColorTarget2=;" \
-        "RenderColorTarget3=;" \
-		"RenderDepthStencilTarget=FOG_depth;" \
-        "Pass=DrawFOGDepth;" \
     ; \
 > { \
     pass DrawObject {  \
@@ -245,10 +213,7 @@ technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; b
 	\
 	pass Draw_ALPHA_FRONT_Object {  \
 	VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap,_usetoonmap); } \
-	\
-	pass DrawFOGDepth {  VertexShader = compile vs_3_0 FOG_VS(); \
-    PixelShader  = compile ps_3_0 FOG_PS(_useTexture); }}
+    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap,_usetoonmap); }}
 
 
 GENTec(MainTec0,object,false,false,false)

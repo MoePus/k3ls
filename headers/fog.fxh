@@ -1,5 +1,5 @@
 texture FogWorkBuff : RENDERCOLORTARGET <
-	float2 ViewportRatio = {1.0, 1.0};
+	float2 ViewportRatio = {0.8, 0.8};
 	string Format = "R16F";
 	int MipLevels = 1;
 >;
@@ -14,78 +14,84 @@ sampler FogWorkBuffSampler = sampler_state {
 
 float depth2scatterFactor(float linearDepth)
 {
-	float scatterFactor = 1/FOG_S - exp(-FOG_S*linearDepth*0.0000125)/FOG_S;
+	float scatterFactor = 1/FOG_S - exp(-FOG_S*linearDepth*0.0125)/FOG_S;
 	return scatterFactor;
 }
 
-float2 LV2phaseFactor(float LV)
+float LV2phaseFactor(float LV)
 {
 	float phaseFactor = 1/(4*PI) * (1 - FOG_G*FOG_G)/ pow(abs(1 + FOG_G*FOG_G -2 * FOG_G * LV), 1.5);//\bwronski_volumetric_fog_siggraph2014/
 	return phaseFactor;
 }
 
+float ShadowFactor(float3 xpos)
+{
+	float4 wpos = float4(xpos,1);
+	float4 LVPos = mul(wpos, matLightViewProject);
+	float2 texCoord = CalcDualShadowCoord(LVPos.xy);
+	float lightDepth = tex2Dlod(PSSMsamp,float4(texCoord,0,1)).x;
+	lightDepth = lightDepth*LightZMax<1+Epsilon?6666666:lightDepth;
+	return  lightDepth < LVPos.z ? 0 : 1;
+}
+
 float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 {
-	Tex = Tex - float2(0.5,0.5);
-	Tex /= 3;
-	Tex = Tex + float2(0.5,0.5);
-#define FOG_BLUR_SAMPLES 55
-	float depth = tex2Dlod(FogDepthMapSampler,float4(Tex,0,0)).x;
-	depth = depth<1+Epsilon?6666666:depth;
-	float3 pos = coord2WorldViewPos(Tex,depth);
-	float3 wpos = mul(pos,(float3x3)ViewInverse);
-	
-	float3 view = CameraPosition - wpos;
-	float3 viewNormal = normalize(view);
+	float depth = tex2D(sumDepthSamp,Tex).x;
+
+	float3 VPos = coord2WorldViewPos(Tex,depth);
+	float4 WPos = mul(float4(VPos,1),ViewInverse);
+
+	float3 view = WPos - CameraPosition;
 	float3 lightNormal = normalize(-LightDirection);
-	float LV = dot(lightNormal,viewNormal);	
+	float3 LightPosition = lightNormal * LightDistance;
 	
-	float phaseFactor = LV2phaseFactor(LV);
+	float viewLength = length(view) + Epsilon;
+	float3 viewNormal = view / viewLength;
+	float Depthstep = min(700,viewLength) / VOLUMETRIC_FOG_SAMPLE;
+	float3 step = Depthstep * viewNormal;
 	
-	float4 LightPosition = float4(lightNormal * LightDistance,1);
-	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
-	lightPosProj.y *= -1;
-    float decay=0.96815;
-    float exposure=0.21;
-    float density=0.926;
-    float weight=0.58767;
-
-    float2 tc = Tex;
-	float l = max(Epsilon,length(CameraPosition-LightPosition));
-    float2 deltaTexCoord = -lightPosProj.xy*0.0000032;
-	deltaTexCoord /= abs(1-(l/LightDistance));
-
-	deltaTexCoord += (Tex-float2(0.5,0.5))*0.48;
-    deltaTexCoord *= 1.0 / float(FOG_BLUR_SAMPLES)  * density;
-    
-    float illuminationDecay = 1.0;
-    float color = phaseFactor * FOG_A * depth2scatterFactor(length(view))*0.305104;
-    
-    tc += deltaTexCoord * frac( sin(dot(Tex.xy+frac(ftime), 
-                                         float2(12.9898, 78.233)))* 43758.5453 );
-    
-    for(int i=0; i < FOG_BLUR_SAMPLES; i++)
+	float3 ray = CameraPosition + step;
+	    
+    float haze = 0;
+	[loop]
+    for (int i = 0; i < VOLUMETRIC_FOG_SAMPLE; i++)
     {
-        tc -= deltaTexCoord;
-        float sampledepth = tex2Dlod(FogDepthMapSampler,float4(tc,0,0)).x;
-		sampledepth = sampledepth<1+Epsilon?6666666:sampledepth;
-		float3 samplepos = coord2WorldViewPos(tc,sampledepth);
-		float3 samplewpos = mul(samplepos,(float3x3)ViewInverse);
-		
-		float3 sampleview = CameraPosition - samplewpos;
-		float3 sampleviewNormal = normalize(sampleview);
-		float sampleLV = dot(lightNormal,sampleviewNormal);	
-		
-		float samplephaseFactor = LV2phaseFactor(sampleLV);
-		float samplescatterFactor = depth2scatterFactor(length(sampleview));
-		
-		float sample = samplephaseFactor * FOG_A * samplescatterFactor*0.305104;
+        float3 L = ray - LightPosition;
+        float atten = 5000000/dot(L,L);
+        atten *= LV2phaseFactor(dot(-view, normalize(L)));
 
-		sample *= illuminationDecay * weight;
-        color += sample;
-        illuminationDecay *= decay;
+        atten *= ShadowFactor(ray);
+		atten *= FOG_A;
+		
+        ray += step;
+        haze += atten;
     }
-#undef FOG_BLUR_SAMPLES
-	color *= color*exposure;
-	return float4(color.xxx,1);
+	haze = haze / VOLUMETRIC_FOG_SAMPLE * 6;
+	haze *= haze;
+    haze *= depth2scatterFactor(viewLength);
+    float fog = haze * 0.25 * invPi;
+	
+    if(depth<1 + Epsilon)
+	{
+		fog = depth2scatterFactor(6666666) * FOG_A * 0.212;	
+	}
+	fog *= fog;
+    return float4(fog.xxx, 0);
 }
+
+#define FOG_RAYMARCH \
+		"RenderColorTarget0=FogWorkBuff;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=FOGRayMarch;"
+
+#define FOGPASS \
+	pass FOGRayMarch < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+        PixelShader  = compile ps_3_0 FOG_PS(); \
+    }

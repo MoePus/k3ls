@@ -121,7 +121,9 @@ struct POST_OUTPUT {
 #include "ssdo\\ssdo.fxh"
 #include "headers\\blur.fxh"
 #include "headers\\SSSSS.fxh"
+#if VOLUMETRIC_FOG_SAMPLE > 0
 #include "headers\\fog.fxh"
+#endif	
 #include "headers\\ACESToneMapping.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef USE_SMAA
@@ -295,8 +297,7 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	ocolor = float4(odiff.xyz+ospec.xyz,albedo.a);
 	return;
 }
-
-
+																									
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
 		"RenderColorTarget0=Blur2WorkBuff0;" \
@@ -401,11 +402,9 @@ string Script =
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=calcAL;"
 		
-		"RenderColorTarget0=FogWorkBuff;"
-    	"RenderDepthStencilTarget=mrt_Depth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=FOGBLUR;"
+		#if VOLUMETRIC_FOG_SAMPLE > 0
+		FOG_RAYMARCH
+		#endif
 		
 		"RenderColorTarget0=mrt;"
     	"RenderDepthStencilTarget=mrt_Depth;"
@@ -422,12 +421,12 @@ string Script =
 		#else
 		DO_SMAA
 		#endif
-		
+
 		/*"RenderColorTarget0=;"
     	"RenderDepthStencilTarget=;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=TEST;"  */
+    	"Pass=TEST;"*/
 	
 		ClearGbuffer
 		;
@@ -442,7 +441,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(AOWorkMapSampler);
+		PixelShader  = compile ps_3_0 COPY_PS(ScreenShadowMapSampler);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
@@ -586,12 +585,7 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
         PixelShader  = compile ps_3_0 Blend_PS();
     }
-	pass FOGBLUR < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 FOG_PS();
-    }
+	#if VOLUMETRIC_FOG_SAMPLE > 0
+	FOGPASS
+	#endif
 }

@@ -148,13 +148,16 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float4 blurredDiffuse = tex2D(diffuseSamp,Tex);
 	float3 specular = tex2D(specularSamp,Tex).xyz;
 	
+	#if VOLUMETRIC_FOG_SAMPLE > 0
 	float3 fog = tex2D(FogWorkBuffSampler,Tex).x * LightAmbient * float3(0.7,0.72,0.79);
+	#else
+	float3 fog = 0;
+	#endif
+	
 	float3 lightNormal = normalize(-LightDirection);
 	float4 LightPosition = float4(lightNormal * LightDistance,1);
 	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
-	if(blurredDiffuse.a > Epsilon)
-		fog *= saturate(dot(CameraDirection,normalize(lightPosProj.xyz)));
-	
+
 	#if SSDO_COLOR_BLEEDING > 0
 	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
 	float3 ocolor = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI) + fog;

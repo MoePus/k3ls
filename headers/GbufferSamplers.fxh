@@ -63,12 +63,4 @@ sampler Normal_ALPHA_FRONT_GbufferSamp = sampler_state {
     AddressU  = CLAMP;
 	AddressV  = CLAMP;
 };
-///////////////////////////////////////////////
-sampler FogDepthMapSampler = sampler_state {
-    texture = <FOG_DEPTH>;
-    MinFilter = LINEAR;
-    MagFilter = LINEAR;
-    MipFilter = NONE;
-    AddressU  = CLAMP;
-    AddressV  = CLAMP;
-};
+
