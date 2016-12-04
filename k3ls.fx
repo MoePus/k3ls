@@ -443,7 +443,7 @@ string Script =
 		VertexShader = compile vs_3_0 POST_VS();
 		PixelShader  = compile ps_3_0 COPY_PS(ScreenShadowMapSampler);
 	}
-
+	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
 		AlphaBlendEnable = FALSE;
 		ZFUNC=ALWAYS;

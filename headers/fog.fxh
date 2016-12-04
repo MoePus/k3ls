@@ -27,10 +27,10 @@ float LV2phaseFactor(float LV)
 float ShadowFactor(float3 xpos)
 {
 	float4 wpos = float4(xpos,1);
-	float4 LVPos = mul(wpos, matLightViewProject);
+	float4 LVPos = mul(wpos, matLightView);
 	float2 texCoord = CalcDualShadowCoord(LVPos.xy);
-	float lightDepth = tex2Dlod(PSSMsamp,float4(texCoord,0,1)).x;
-	lightDepth = lightDepth*LightZMax<1+Epsilon?6666666:lightDepth;
+	float lightDepth = tex2Dlod(PSSMsamp,float4(texCoord,0,1)).x * LightZMax;
+	lightDepth = lightDepth<1+Epsilon?6666666:lightDepth;
 	return  lightDepth < LVPos.z ? 0 : 1;
 }
 
@@ -38,6 +38,12 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 {
 	float depth = tex2D(sumDepthSamp,Tex).x;
 
+	if(depth<1 + Epsilon)
+	{
+		float earlyFog = FOG_A * 1.94 / FOG_S;	
+		return float4(earlyFog * earlyFog.xxx,1);
+	}
+	
 	float3 VPos = coord2WorldViewPos(Tex,depth);
 	float4 WPos = mul(float4(VPos,1),ViewInverse);
 
@@ -50,8 +56,8 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 	float Depthstep = min(700,viewLength) / VOLUMETRIC_FOG_SAMPLE;
 	float3 step = Depthstep * viewNormal;
 	
-	float3 ray = CameraPosition + step;
-	    
+	float3 ray = CameraPosition + step - hash12(Tex*ftime) * step * 0.8;
+	
     float haze = 0;
 	[loop]
     for (int i = 0; i < VOLUMETRIC_FOG_SAMPLE; i++)
@@ -71,12 +77,8 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
     haze *= depth2scatterFactor(viewLength);
     float fog = haze * 0.25 * invPi;
 	
-    if(depth<1 + Epsilon)
-	{
-		fog = depth2scatterFactor(6666666) * FOG_A * 0.212;	
-	}
 	fog *= fog;
-    return float4(fog.xxx, 0);
+    return float4(fog.xxx, 1);
 }
 
 #define FOG_RAYMARCH \
