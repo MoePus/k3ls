@@ -97,16 +97,16 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	
 	float shadow = 0;
 	shadow += CalcLight(fCasterDepth[0], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[1], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[2], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[3], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[4], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[5], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[6], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[7], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[8], receiverDepth, sdrate);
+	shadow += CalcLight(fCasterDepth[1], receiverDepth, sdrate) * 0.5;
+	shadow += CalcLight(fCasterDepth[2], receiverDepth, sdrate) * 0.5;
+	shadow += CalcLight(fCasterDepth[3], receiverDepth, sdrate) * 0.5;
+	shadow += CalcLight(fCasterDepth[4], receiverDepth, sdrate) * 0.5;
+	shadow += CalcLight(fCasterDepth[5], receiverDepth, sdrate) * 0.95;
+	shadow += CalcLight(fCasterDepth[6], receiverDepth, sdrate) * 0.95;
+	shadow += CalcLight(fCasterDepth[7], receiverDepth, sdrate) * 0.95;
+	shadow += CalcLight(fCasterDepth[8], receiverDepth, sdrate) * 0.95;
 
-	shadow /= 9;
+	shadow /= 6.8;
 	
 	shadow = shadow*max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold);
 	
