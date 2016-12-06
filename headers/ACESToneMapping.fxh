@@ -149,7 +149,10 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float3 specular = tex2D(specularSamp,Tex).xyz;
 	
 	#if VOLUMETRIC_FOG_SAMPLE > 0
-	float3 fog = tex2D(FogWorkBuffSampler,Tex).x * LightAmbient * float3(0.7,0.72,0.79);
+	float fogFactor = tex2D(FogWorkBuffSampler,Tex).x;
+	fogFactor = clamp(fogFactor,0,0.67) * 1.7;
+	fogFactor = pow(fogFactor,3.6) * 0.62;
+	float3 fog = fogFactor * LightAmbient * float3(0.76,0.74,0.1);
 	#else
 	float3 fog = 0;
 	#endif
@@ -160,11 +163,13 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 
 	#if SSDO_COLOR_BLEEDING > 0
 	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
-	float3 ocolor = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI) + fog;
+	float3 ocolor = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI);
 	#else
-	float3 ocolor = blurredDiffuse.xyz + specular + fog;
+	float3 ocolor = blurredDiffuse.xyz + specular;
 	#endif
 	
+	ocolor *= (1-dot(fog, RGB2LUM)*0.4);
+
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = adaptedLum[0][0].r;
 
@@ -176,6 +181,8 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	color = AF(color * adapted_lum_dest);
 	
 	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
+	
+	outColor = 1.0.xxx - (1.0.xxx-outColor)*(1.0.xxx-fog);
 	
 	return float4(outColor,1);
 }

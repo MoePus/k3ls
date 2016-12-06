@@ -40,8 +40,8 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 
 	if(depth<1 + Epsilon)
 	{
-		float earlyFog = FOG_A * 1.94 / FOG_S;	
-		return float4(earlyFog * earlyFog.xxx,1);
+		float earlyFog = FOG_A * 0.3 / FOG_S;	
+		return float4(earlyFog.xxx,1);
 	}
 	
 	float3 VPos = coord2WorldViewPos(Tex,depth);
@@ -73,11 +73,9 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
         haze += atten;
     }
 	haze = haze / VOLUMETRIC_FOG_SAMPLE * 6;
-	haze *= haze;
     haze *= depth2scatterFactor(viewLength);
     float fog = haze * 0.25 * invPi;
 	
-	fog *= fog;
     return float4(fog.xxx, 1);
 }
 

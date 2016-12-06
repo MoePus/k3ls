@@ -728,7 +728,7 @@ DoubleColor PS_DrawHighLight( float2 Tex: TEXCOORD0 ) {
     OrgColor = tex2Dlod(ScnSamp, float4(Tex, 0, 0));
 	OrgColor = pow(OrgColor,1/2.4);
     OverLightColor = OrgColor * OverLight;
-    OverLightColor = max(0, OverLightColor - 0.84);
+    OverLightColor = max(0, OverLightColor - 0.936);
     OverLightColor = ToneCurve(OverLightColor);
     
     #if KEYCOLOR_NUM!=0
