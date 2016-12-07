@@ -77,22 +77,49 @@ texture2D lum4x4Depth : RENDERDEPTHSTENCILTARGET <
 >;
 
 
-texture2D adapted_lum: RENDERCOLORTARGET <//K3LS_GBuffer_04_roughness&reflectance&effect&posw
+texture2D adapted_lum: RENDERCOLORTARGET <
     int Width = 1;
 	int Height = 1;
 	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = "D3DFMT_R32F";
 >;
-
+texture2D baked_adapted_lum: RENDERCOLORTARGET <
+    int Width = 1;
+	int Height = 1;
+	float4 ClearColor = { 0, 0, 0, 0 };
+	string Format = "D3DFMT_R32F";
+>;
 texture2D adapted_lum_Depth : RENDERDEPTHSTENCILTARGET <
     int Width = 1;
 	int Height = 1;
     string Format = "D24S8";
 >;
-
+sampler adaptedLumSamp = sampler_state {
+    texture = <adapted_lum>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+sampler bakedAdaptedLumSamp = sampler_state {
+    texture = <baked_adapted_lum>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+/*
 float4 adaptedLum[1][1] : TEXTUREVALUE <
     string TextureName = "adapted_lum";
 >;
+*///note:TEXTUREVALUE slows down the shader.said ik.
+
+float4 CopyAL_PS(float2 Tex: TEXCOORD0) : COLOR
+{
+	return tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0));
+}
 
 
 float elapsed_time : ELAPSEDTIME;
@@ -121,7 +148,7 @@ float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 	float lum = 0.4*maxLum + 0.6*avgLum;
 	lum = exp(maxLum);
-	lum = CalcAdaptedLum(adaptedLum[0][0].r,lum);
+	lum = CalcAdaptedLum(tex2Dlod(bakedAdaptedLumSamp, float4(0.5,0.5,0,0)).r,lum);
 	return float4(lum.xxx,1);
 }
 
@@ -171,7 +198,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	ocolor *= (1-dot(fog, RGB2LUM)*0.4);
 
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
-	float adapted_lum = adaptedLum[0][0].r;
+	float adapted_lum = tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0)).r;
 
 	float lum = dot(ocolor, RGB2LUM);
 	float3 color = lerp(lum * BLUE_SHIFT, ocolor, saturate(16.0f * lum));
@@ -191,3 +218,77 @@ float4 DownScale_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 	return tex2Dlod(Samp,float4(Tex,0,1));
 }
+
+#define DownSacleLumAdapt \
+		"RenderColorTarget0=lumHalfTexture;" \
+		"RenderDepthStencilTarget=lumHalfDepth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DOHALFLUM;" \
+		 \
+		"RenderColorTarget0=lumQuaterTexture;" \
+		"RenderDepthStencilTarget=lumQuaterDepth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DOQuaterLUM;" \
+		 \
+		"RenderColorTarget0=lum4x4Texture;" \
+		"RenderDepthStencilTarget=lum4x4Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DO4x4LUM;" \
+		 \
+		"RenderColorTarget0=baked_adapted_lum;" \
+    	"RenderDepthStencilTarget=adapted_lum_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=copyAL;" \
+		 \
+		"RenderColorTarget0=adapted_lum;" \
+    	"RenderDepthStencilTarget=adapted_lum_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=calcAL;"
+		
+
+#define AdaptLumPass \
+	pass DOHALFLUM < string Script= "Draw=Buffer;"; >  \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 DownScale_PS(lumSamp);  \
+	}  \
+	pass DOQuaterLUM < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 DownScale_PS(lumHalfSamp);  \
+	}  \
+	pass DO4x4LUM < string Script= "Draw=Buffer;"; >   \
+	{	  \
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 DownScale_PS(lumQuaterSamp);  \
+	}  \
+	pass copyAL < string Script= "Draw=Buffer;"; >   \
+	{  \
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+        VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 CopyAL_PS();  \
+    }  \
+	pass calcAL < string Script= "Draw=Buffer;"; >   \
+	{  \
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+        VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 LUM_PS();  \
+    }

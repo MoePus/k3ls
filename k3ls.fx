@@ -378,29 +378,7 @@ string Script =
 		BLUR_COLOR_BLEEDING
 		#endif
 		
-		"RenderColorTarget0=lumHalfTexture;"
-		"RenderDepthStencilTarget=lumHalfDepth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=DOHALFLUM;"
-		
-		"RenderColorTarget0=lumQuaterTexture;"
-		"RenderDepthStencilTarget=lumQuaterDepth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=DOQuaterLUM;"
-		
-		"RenderColorTarget0=lum4x4Texture;"
-		"RenderDepthStencilTarget=lum4x4Depth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=DO4x4LUM;"
-		
-		"RenderColorTarget0=adapted_lum;"
-    	"RenderDepthStencilTarget=adapted_lum_Depth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=calcAL;"
+		DownSacleLumAdapt
 		
 		#if VOLUMETRIC_FOG_SAMPLE > 0
 		FOG_RAYMARCH
@@ -518,39 +496,8 @@ string Script =
         PixelShader  = compile ps_3_0 PBR_ALPHAFRONT_PS();
     }
 	
+	AdaptLumPass
 	
-	pass DOHALFLUM < string Script= "Draw=Buffer;"; > 
-	{		
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 DownScale_PS(lumSamp);
-	}
-	pass DOQuaterLUM < string Script= "Draw=Buffer;"; > 
-	{		
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 DownScale_PS(lumHalfSamp);
-	}
-	pass DO4x4LUM < string Script= "Draw=Buffer;"; > 
-	{		
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 DownScale_PS(lumQuaterSamp);
-	}
-	pass calcAL < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 LUM_PS();
-    }
 	pass ToneMapping < string Script= "Draw=Buffer;"; > 
 	{
 		AlphaBlendEnable = FALSE;
