@@ -13,7 +13,6 @@ float Script : STANDARDSGLOBAL <
 float3 FOGXYZ         : CONTROLOBJECT < string name = "(self)"; string item="XYZ"; >;
 static float FOG_G = max(0,FOGXYZ.x);
 static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
-static float FOG_S2inv = 1/(FOG_S*FOG_S);
 static float FOG_A = max(0,1+FOGXYZ.z);
 
 float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
@@ -238,8 +237,6 @@ out float4 ospec
 		
 	odiff = float4((albedo.a>Epsilon)*((ShadowMapVal*diffuse + ao*ambientDiffuse)*RF + selfLight + trans),albedo.a);
 	ospec = float4((albedo.a>Epsilon)*(ShadowMapVal*specular+ao*ambientSpecular+surfaceSpecular),cp.SSS);
-	odiff.xyz *= 1-FOG_S2inv;
-	ospec.xyz *= 1-FOG_S2inv;
 }
 						
 void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
