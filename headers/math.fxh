@@ -5,11 +5,6 @@ float3 coord2WorldViewPos(float2 texcoord, float depth)
 	return VPos;
 }
 
-float3 NormalDecode(float3 N)
-{
-	return N * 2 - 1;
-}
-
 float3 srgb2linear(float3 rgb)
 {
 	const float ALPHA = 0.055f;
