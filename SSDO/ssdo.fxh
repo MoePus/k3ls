@@ -15,9 +15,9 @@ sampler AOWorkMapSampler = sampler_state {
     AddressV  = CLAMP;
 };
 
-const float DepthLength = 10.0;	
-static float InvDepthLength6 = 1.0 / pow(DepthLength, 6);
-static float2 SSAORadiusB = (64.0 / 1024.0) / SSAORayCount * float2(1, ViewportSize.x/ViewportSize.y);
+#define DepthLength 10.0	
+#define InvDepthLength6 1e-06
+static float SSAORadius = 0.14 / SSAORayCount * Aspect;
 
 inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 {
@@ -30,7 +30,7 @@ inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 	float dotVN = max(dot(v, N) - SSAO_BIAS, 0.0f);
 	float f = max(DepthLength * DepthLength - distance2, 0.0f);
 	float f3 = f * f * f;
-	float ao = (1 + 3 * aoPlus) * f3 * InvDepthLength6 * dotVN / (distance2 + 1e-3);
+	float ao = (1.5 + 3 * aoPlus) * f3 * InvDepthLength6 * dotVN / (distance2 + 1e-3);
 
 	return min(ao, 1.0);
 }
@@ -50,19 +50,18 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float sum = 0.0;
 	float3 col = 0;
 
+	float totalCRad = 0;
+	float totalCAORad = 0;
+	
+	float qAoRadius = max(SSAORadius * 0.42,SSAORadius - Depth*0.000048);
 	// MEMO: unrollするとレジスタを使い過ぎてコンパイルが通らない
-	// note: do not use global const variables in shader.
-	#if SSDO_COLOR_BLEEDING > 0
-	[loop]
-	#else
+	// note: do not use global const variables in (the loop of a) shader.
 	[unroll]
-	#endif
 	for(int j = 0; j < SSAORayCount; j++)
 	{
 		float2 sc;
-		sincos(j * radMul + radAdd, sc.x, sc.y);
-		float2 r = j * SSAORadiusB;
-		float2 uv = sc * r + Tex;
+		sincos(totalCRad + radAdd, sc.x, sc.y);
+		float2 uv = sc * totalCAORad + Tex;
 
 		float ao = GetOccRate(uv, WPos, N);
 		sum += ao;
@@ -77,6 +76,9 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		}
 			
 		#endif
+		
+		totalCRad += radMul;
+		totalCAORad += qAoRadius;
 	}
 
 	// 元のSAOのソースでは、ddx/ddyでクアッド単位の
@@ -85,3 +87,5 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float s = saturate(1.0 - sum * (1.0 / SSAORayCount));
 	return float4(s,col/ SSAORayCount);
 }
+
+#undef DepthLength
