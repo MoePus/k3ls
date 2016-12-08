@@ -183,10 +183,6 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	#else
 	float3 fog = 0;
 	#endif
-	
-	float3 lightNormal = normalize(-LightDirection);
-	float4 LightPosition = float4(lightNormal * LightDistance,1);
-	float4 lightPosProj = mul(LightPosition,ViewProjectMatrix);
 
 	#if SSDO_COLOR_BLEEDING > 0
 	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
