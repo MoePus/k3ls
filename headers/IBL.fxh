@@ -64,7 +64,7 @@ static float3x3 rotate = makeRotate(0, 0, 0);
 
 float2 computeSphereCoord(float3 normal)
 {
-    float2 coord = float2(1 - (atan2(normal.x, normal.z) * invPi * 0.5f + 0.5f), acos(normal.y) * invPi);
+    float2 coord = float2(atan2(normal.x,normal.z)*invPi*0.5+0.5,acos(normal.y)*invPi);//a lie down sphere map?
     return coord;
 }
 
@@ -85,15 +85,12 @@ void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out flo
 
     float4 prefilteredDiffuse = tex2D(IBLDiffuseSampler, computeSphereCoord(N));
     float4 prefilteredSpeculr = tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer));
-    float4 prefilteredTransmittance = tex2D(IBLDiffuseSampler, computeSphereCoord(-N));
 
     prefilteredDiffuse.rgb = srgb2linear(prefilteredDiffuse.rgb);
     prefilteredSpeculr.rgb = srgb2linear(prefilteredSpeculr.rgb);
-    //prefilteredTransmittance.rgb = srgb2linear(prefilteredTransmittance.rgb);
 
     prefilteredSpeculr *= HorizonOcclusion(normal, view);
 
     diffuse = prefilteredDiffuse.rgb;
-    //diffuse += prefilteredTransmittance.rgb * material.transmittance * (1 + mEnvSSSLightP * 5 - mEnvSSSLightM);
     specular = prefilteredSpeculr.rgb;
 }
