@@ -1,4 +1,4 @@
-#define SHADOW_QUALITY				4
+#define SHADOW_QUALITY				2
 #define	SSAORayCount				24
 #define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					6
@@ -106,29 +106,31 @@ static float4x4 matLightProject = {
 
 float4x4 GetLightViewMatrix(float3 forward)
 {
-   float3 LightPosition = -forward * LightDistance;
-   float3 right = cross(float3(0.0f, 1.0f, 0.0f), forward);
-   float3 up;
+	const float3 up1 = float3(0, 0, 1);
+	const float3 up2 = float3(1, 0, 0);
+   
+	float3 LightPosition = -forward * LightDistance;
+	float3 right = cross(CameraDirection.xyz, forward);
 
-   if (any(right))
-   {
-       right = normalize(right);
-       up = cross(forward, right);
-   }
-   else
-   {
-       right = float3(1.0f, 0.0f, 0.0f);
-       up = float3(0.0f, 0.0f, -sign(forward.y));
-   }
-
-   float3x3 rotation = { right.x, up.x, forward.x,
+	if (any(right))
+	{
+		right = normalize(right);
+	}
+	else
+	{
+		right = cross(up1, forward);
+		right = !any(right) ? normalize(cross(up2, forward)) : normalize(right);
+	}
+   
+	float3 up = normalize(cross(forward, right));
+	float3x3 rotation = { right.x, up.x, forward.x,
                          right.y, up.y, forward.y,
                          right.z, up.z, forward.z };
 
-   return float4x4(rotation[0], 0,
-                   rotation[1], 0,
-                   rotation[2], 0,
-                   mul(-LightPosition, rotation), 1);
+	return float4x4(rotation[0], 0,
+					rotation[1], 0,
+					rotation[2], 0,
+					mul(-(CameraPosition+LightPosition), rotation), 1);
 };
 
 float4 CalcLightProjPos(float fov, float znear, float zfar, float4 P)
@@ -138,29 +140,6 @@ float4 CalcLightProjPos(float fov, float znear, float zfar, float4 P)
     return float4(h * P.x, h * P.y, zp, P.z);
 }
 
-float4x4 CreateLightViewMatrix(float3 forward)
-{
-    const float3 up1 = float3(0, 0, 1);
-    const float3 up2 = float3(1, 0, 0);
-
-    float3 right = cross(CameraDirection, forward);
-    right = !any(right) ? cross(up1, forward) : right;
-    right = !any(right) ? cross(up2, forward) : right;
-    right = normalize(right);
-
-    float3 up = cross(forward, right);
-    
-    float3x3 rotation = { right.x, up.x, forward.x,
-                          right.y, up.y, forward.y,
-                          right.z, up.z, forward.z };
-
-    float3 pos = floor(CameraPosition) - forward * LightDistance;
-
-    return float4x4(rotation[0], 0,
-                    rotation[1], 0,
-                    rotation[2], 0,
-                    mul(-pos, rotation), 1);
-}
 
 float CalculateSplitPosition(float i)
 {
