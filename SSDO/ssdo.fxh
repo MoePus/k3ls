@@ -69,7 +69,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		float MaxofPounds = max(max(bouns.x-MINofBouns,bouns.y-MINofBouns),bouns.z-MINofBouns);
 		if(MaxofPounds>0)
 		{
-			bouns*=(1 + srgb2linear(tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz));
+			bouns*=(1 + easysrgb2linear(tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz));
 			col += min(0.3,ao) * bouns * invPi * LightAmbient;
 		}
 			

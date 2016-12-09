@@ -90,7 +90,7 @@ float4 DX9_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
                                       uniform sampler2D colorTex,
                                       uniform sampler2D blendTex) : COLOR {
     float4 color = SMAANeighborhoodBlendingPS(texcoord, offset, colorTex, blendTex);
-	return float4(linear_to_srgb(color.xyz), 1);
+	return float4(linear2srgb(color.xyz), 1);
 }
 
 

@@ -5,13 +5,18 @@ float3 coord2WorldViewPos(float2 texcoord, float depth)
 	return VPos;
 }
 
+float3 easysrgb2linear(float3 rgb)
+{
+    return pow(rgb, 2.2f);
+}
+
 float3 srgb2linear(float3 rgb)
 {
 	const float ALPHA = 0.055f;
     return rgb < 0.0404482f ? rgb / 12.92f : pow((rgb + ALPHA) / (1 + ALPHA), 2.4f);
 }
 
-float3 linear_to_srgb(float3 rgb)
+float3 linear2srgb(float3 rgb)
 {
 	const float ALPHA = 0.055f;
 	return rgb < 0.0031308f ? 12.92f * rgb : (1 + ALPHA) * pow(rgb, 1 / 2.4f) - ALPHA;
