@@ -37,12 +37,6 @@ float ShadowFactor(float3 xpos)
 float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 {
 	float depth = tex2D(sumDepthSamp,Tex).x;
-
-	if(depth<1 + Epsilon)
-	{
-		float earlyFog = FOG_A * 0.3 / FOG_S;	
-		return float4(earlyFog.xxx,1);
-	}
 	
 	float3 VPos = coord2WorldViewPos(Tex,depth);
 	float4 WPos = mul(float4(VPos,1),ViewInverse);

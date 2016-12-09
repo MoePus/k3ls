@@ -1,4 +1,4 @@
-#define SHADOW_QUALITY				2
+#define SHADOW_QUALITY				3
 #define	SSAORayCount				24
 #define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					6

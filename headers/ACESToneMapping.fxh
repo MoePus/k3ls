@@ -202,12 +202,10 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
 	color = AF(color * adapted_lum_dest);
+		
+	color = 1.0.xxx - (1.0.xxx-color)*(1.0.xxx-fog);
 	
-	float3 outColor = HDRSTRENGTH*color+(1-HDRSTRENGTH)*ocolor;
-	
-	outColor = 1.0.xxx - (1.0.xxx-outColor)*(1.0.xxx-fog);
-	
-	return float4(outColor,1);
+	return float4(color,1);
 }
 
 float4 DownScale_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR

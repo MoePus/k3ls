@@ -17,7 +17,7 @@ sampler AOWorkMapSampler = sampler_state {
 
 #define DepthLength 10.0	
 #define InvDepthLength6 1e-06
-static float SSAORadius = 0.14 / SSAORayCount * Aspect;
+static float2 SSAORadius = 0.14 / SSAORayCount * ViewportAspect;
 
 inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 {
@@ -38,8 +38,6 @@ inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
 float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 {
 	float Depth = tex2D(sumDepthSamp,Tex).x;
-	if(Depth<1+Epsilon)
-		return float4(0,0,0,0);
 	
 	float3 N = tex2D(sumNormalSamp,Tex).xyz;
 	float3 WPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
@@ -51,9 +49,9 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float3 col = 0;
 
 	float totalCRad = 0;
-	float totalCAORad = 0;
+	float2 totalCAORad = 0;
 	
-	float qAoRadius = max(SSAORadius * 0.42,SSAORadius - Depth*0.000048);
+	float2 qAoRadius = max(SSAORadius * 0.42,SSAORadius - Depth*0.000048.xx);
 	// MEMO: unroll¤¹¤ë¤È¥ì¥¸¥¹¥¿¤òÊ¹¤¤ß^¤®¤Æ¥³¥ó¥Ñ¥¤¥ë¤¬Í¨¤é¤Ê¤¤
 	// note: do not use global const variables in (the loop of a) shader.
 	[unroll]

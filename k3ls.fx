@@ -15,7 +15,7 @@ static float FOG_G = max(0,FOGXYZ.x);
 static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
 static float FOG_A = max(0,1+FOGXYZ.z);
 
-float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
+//float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
 float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 
 float  AmbLightPower		: CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
@@ -159,6 +159,7 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 		Depth = float4(Depth1,0,0,1);
 		N = float4(N1,1);
 	}
+	Depth.x = Depth.x < 1 + Epsilon?6666666:Depth.x;
 	return;
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
