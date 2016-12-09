@@ -66,8 +66,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		#if SSDO_COLOR_BLEEDING > 0
 		float3 bouns = tex2D(AlbedoGbufferSamp,uv).xyz;
 		float MINofBouns = min(min(bouns.x,bouns.y),bouns.z)*2;
-		float MaxofPounds = max(max(bouns.x-MINofBouns,bouns.y-MINofBouns),bouns.z-MINofBouns);
-		if(MaxofPounds>0)
+		if(any(bouns - MINofBouns.xxx))
 		{
 			bouns*=(1 + easysrgb2linear(tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz));
 			col += min(0.3,ao) * bouns * invPi * LightAmbient;

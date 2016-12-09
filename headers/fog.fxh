@@ -30,7 +30,6 @@ float ShadowFactor(float3 xpos)
 	float4 LVPos = mul(wpos, matLightView);
 	float2 texCoord = CalcDualShadowCoord(LVPos.xy);
 	float lightDepth = tex2Dlod(PSSMsamp,float4(texCoord,0,1)).x * LightZMax;
-	lightDepth = lightDepth<1+Epsilon?6666666:lightDepth;
 	return  lightDepth < LVPos.z ? 0 : 1;
 }
 
@@ -50,7 +49,7 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 	float Depthstep = min(700,viewLength) / VOLUMETRIC_FOG_SAMPLE;
 	float3 step = Depthstep * viewNormal;
 	
-	float3 ray = CameraPosition + step - hash12(Tex*ftime) * step * 0.8;
+	float3 ray = CameraPosition + step * (0.2+hash12(Tex*ftime)*0.8);
 	
     float haze = 0;
 	[loop]
