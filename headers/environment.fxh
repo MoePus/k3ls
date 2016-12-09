@@ -83,6 +83,8 @@ float4x4 ProjectMatrixInverse     : PROJECTIONINVERSE;
 float4x4 ViewProjectMatrix        : VIEWPROJECTION;
 float4x4 ViewProjectMatrixInverse : VIEWPROJECTIONINVERSE;
 
+#define SCENE_ZFAR 3200
+
 static float invCotheta = 1/ProjectMatrix._22;
 static float Aspect = ViewportSize.x/ViewportSize.y;
 

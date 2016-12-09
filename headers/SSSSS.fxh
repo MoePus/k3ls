@@ -13,7 +13,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
 	step_mod = (1 + BlurIndex)*SSS_strength; \
 	step *= 1000*ViewportOffset2; \
 	float4 colorM = tex2D(SAMP_name,Tex); \
-    float depthM = tex2D(DepthGbufferSamp,Tex).r; \
+    float depthM = tex2D(DepthGbufferSamp,Tex).r * SCENE_ZFAR; \
     float4 colorBlurred = colorM; \
     colorBlurred.rgb *= 0.382; \
 	float correction = 100*(1-sss_correction*0.1); \

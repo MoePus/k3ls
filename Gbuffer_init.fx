@@ -63,6 +63,7 @@ shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <
 #include "headers\\GbufferClear.fxh"
 
 float4 ClearColor = {0,0,0,0};
+float4 ClearDepthColor = {1,1,1,0};
 float ClearDepth  = 1.0;
 technique buffer_init <
 string Script = 		

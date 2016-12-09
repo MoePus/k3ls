@@ -133,7 +133,7 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	
 	float spaShineness = dot(spa, RGB2LUM);
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id+roughnessFactor,0,0);
+	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id+roughnessFactor,0,0);
 	gbuffer.spa = float4(spaShineness,normal.z,0,0);
 	gbuffer.Normal = float4(normal.xy,0,0);
 	return;
@@ -182,7 +182,7 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	
 	float spaShineness = dot(spa, RGB2LUM);
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w,_id+roughnessFactor,0,1);
+	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id+roughnessFactor,0,1);
 	gbuffer.spa = float4(spaShineness,normal.z,0,1);
 	gbuffer.Normal = float4(normal.xy,0,1);
 	return;

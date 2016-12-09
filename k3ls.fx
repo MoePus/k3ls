@@ -143,13 +143,13 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
 
 void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLOR1)
 {
-	float Depth1 = tex2D(DepthGbufferSamp,Tex).x;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
+	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
+	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
 	
 	float3 N1 = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
 	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
 	
-	bool T = Depth1 <= Epsilon || ( Depth2 > Epsilon &&  Depth2<Depth1);
+	bool T = Depth2<=Depth1;
 	if(T)
 	{
 		Depth = float4(Depth2,0,0,1);
@@ -159,14 +159,17 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 		Depth = float4(Depth1,0,0,1);
 		N = float4(N1,1);
 	}
-	Depth.x = Depth.x < 1 + Epsilon?6666666:Depth.x;
+
 	return;
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
 	
-	return float4(color.xyz,1);
+	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
+	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
+	color = abs(Depth1 - Depth2);
+	return float4(color.xxx,1);
 }
 
 inline float3 CalcTranslucency(float s)
@@ -250,7 +253,7 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	float spa = spaMap.x;
 	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
-	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
+	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
 	float3 pos = coord2WorldViewPos(Tex,linearDepth);
 	float3 wpos = mul(pos,(float3x3)ViewInverse);
@@ -261,9 +264,9 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	
 	float4 alphaLight = tex2D(Blur4WorkBuff1Sampler,Tex);
 	
-	float Depth = tex2D(sumDepthSamp,Tex).x;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x;
-	if(Depth2<=Depth)
+	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
+	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
+	if(Depth2<=Depth1)
 	{
 		odiff.xyz*=(1-alphaLight.a);
 		ospec.xyz=ospec.xyz*(1-alphaLight.a)+alphaLight.xyz*alphaLight.a;
@@ -284,7 +287,7 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	float spa = spaMap.x;
 	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy;
-	float linearDepth = albedo.a < Epsilon ? 6666666:linearDepthXid.x;
+	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
 	float3 pos = coord2WorldViewPos(Tex,linearDepth);
 	float3 wpos = mul(pos,(float3x3)ViewInverse);
@@ -326,6 +329,7 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 #endif
 ///////////////////////////////////////////////////////////////////////////////////////////////
 float4 ClearColor = {0,0,0,0};
+float4 ClearDepthColor = {1,1,1,0};
 float ClearDepth  = 1.0;
 
 technique K3LS_COMP<
@@ -417,7 +421,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(ScreenShadowMapSampler);
+		PixelShader  = compile ps_3_0 COPY_PS(Depth_ALPHA_FRONT_GbufferSamp);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
