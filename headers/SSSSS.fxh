@@ -22,7 +22,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
     for (int i = 0; i < 6; i++) { \
         float2 offset = Tex + o[i] * finalStep / ViewportSize; \
         float3 color = tex2D(SAMP_name,offset).rgb; \
-        float depth = tex2D(DepthGbufferSamp,offset).r; \
+        float depth = tex2D(DepthGbufferSamp,offset).r * SCENE_ZFAR; \
         float s = min(0.0125 * correction * abs(depthM - depth), 1.0); \
         color = lerp(color, colorM.rgb, s); \
         colorBlurred.rgb += w[i] * color; } \
