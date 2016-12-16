@@ -190,6 +190,7 @@ out float4 odiff,
 out float4 ospec
 )
 {
+	albedo.xyz = easysrgb2linear(albedo.xyz);
 	albedo.xyz = max(albedo.xyz,0.0013.xxx);//note: there is no pure black in the world.
 	
 	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;

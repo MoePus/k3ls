@@ -95,10 +95,9 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
-        DiffuseColor.xyz *= TexColor.xyz;
-		DiffuseColor.a = TexColor.a;
+        DiffuseColor = TexColor;
     }
-	
+
 	float3 normal,spa;
 	float roughnessFactor = 0;
 	
