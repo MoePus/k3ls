@@ -64,7 +64,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		float ao = GetOccRate(uv, WPos, N);
 		sum += ao;
 		#if SSDO_COLOR_BLEEDING > 0
-		float3 bouns = tex2D(AlbedoGbufferSamp,uv).xyz;
+		float3 bouns = easysrgb2linear(tex2D(AlbedoGbufferSamp,uv).xyz);
 		float MINofBouns = min(min(bouns.x,bouns.y),bouns.z)*2;
 		if(any(bouns - MINofBouns.xxx))
 		{
