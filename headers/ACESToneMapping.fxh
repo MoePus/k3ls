@@ -1,3 +1,38 @@
+float3 ColorTemperatureToRGB(float temperatureInKelvins)
+{
+	if (temperatureInKelvins<=1000.0+Epsilon)
+		return float3(1,1,1);
+		
+	//http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+	
+	float3 retColor;
+	
+    temperatureInKelvins = clamp(temperatureInKelvins, 1000.0, 40000.0) / 100.0;
+    
+    if (temperatureInKelvins <= 66.0)
+    {
+        retColor.r = 1.0;
+        retColor.g = saturate(0.39008157876901960784 * log(temperatureInKelvins) - 0.63184144378862745098);
+    }
+    else
+    {
+    	float t = temperatureInKelvins - 60.0;
+        retColor.r = saturate(1.29293618606274509804 * pow(t, -0.1332047592));
+        retColor.g = saturate(1.12989086089529411765 * pow(t, -0.0755148492));
+    }
+    
+    if (temperatureInKelvins >= 66.0)
+        retColor.b = 1.0;
+    else if(temperatureInKelvins <= 19.0)
+        retColor.b = 0.0;
+    else
+        retColor.b = saturate(0.54320678911019607843 * log(temperatureInKelvins - 10.0) - 1.19625408914);
+
+    return retColor;
+}
+
+static float3 temperatureColor = ColorTemperatureToRGB(colorTemperature*10000.0 + 1000.0);
+
 texture2D lumTexture : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
 	int MipLevel = 1;
@@ -179,7 +214,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float fogFactor = tex2D(FogWorkBuffSampler,Tex).x;
 	fogFactor = clamp(fogFactor,0,0.67) * 1.7;
 	fogFactor = pow(fogFactor,3.6) * 0.62;
-	float3 fog = fogFactor * LightAmbient * float3(0.76,0.74,0.1);
+	float3 fog = fogFactor * LightAmbient * fogColor;
 	#else
 	float3 fog = 0;
 	#endif
@@ -204,6 +239,8 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	color = AF(color * adapted_lum_dest);
 		
 	color = 1.0.xxx - (1.0.xxx-color)*(1.0.xxx-fog);
+	
+	color *= temperatureColor;
 	
 	return float4(color,1);
 }
