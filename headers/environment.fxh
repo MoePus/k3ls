@@ -96,10 +96,6 @@ const float CascadeScale = 0.5;
 const float LightZMax = 4000.0;
 const float LightDistance = 1000;
 
-const float LightPlaneNear = 0.1;
-const float LightPlaneFar = 500.0;
-
-
 static float4x4 matLightProject = {
     1,  0,  0,  0,
     0,  1,  0,  0,
@@ -211,15 +207,6 @@ float4x4 CreateLightProjParameters(float4x4 matLightProjectionToCameraView)
         CreateLightProjParameter(matLightProjectionToCameraView, frustumInfo, z2, z3),
         CreateLightProjParameter(matLightProjectionToCameraView, frustumInfo, z3, z4));
 }
-
-float ShadowSlopeScaledBias(float depth)
-{
-    float dx = abs(ddx(depth));
-    float dy = abs(ddy(depth));
-    float depthSlope = max(dx, dy);
-    return depthSlope;
-}
-
 
 float2 WarpDepth(float depth, float2 exponents)
 {

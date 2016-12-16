@@ -74,8 +74,9 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	float2 texCoord = CalcDualShadowCoord(LVPos.xy);
 
 	float receiverDepth = LVPos.z;
-	float depthSlope = ShadowSlopeScaledBias(receiverDepth);
-	float depthBias = (VPos.z / LightZMax + depthSlope) * 0.005;
+	float depthSlope = max(abs( ddx( receiverDepth ) ) ,abs( ddy( receiverDepth ) ));
+	float depthBias = (VPos.z / LightZMax + depthSlope) * 0.0049;
+	
 	receiverDepth -= depthBias;
 
 	float s = 1.5 / SHADOW_MAP_SIZE;	
