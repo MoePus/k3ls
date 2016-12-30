@@ -1,13 +1,13 @@
 #define SHADOW_QUALITY				4
 #define	SSAORayCount				32
-#define SSDO_COLOR_BLEEDING			10
+#define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					7
-#define VOLUMETRIC_FOG_SAMPLE		120
+#define VOLUMETRIC_FOG_SAMPLE		0
 #define AA_QUALITY					4
 #define SMAA_EDGE_DETECT_MODE		0
 #define SMAA_WEIGHT_SUBSAMPLE		2
+#define ENABLE_SSS					0
 #define FILL_2_FLOAT_TO_4			1
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define fogColor float3(0.76,0.74,0.1)
 #define CasterAlphaThreshold 140

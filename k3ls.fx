@@ -375,8 +375,10 @@ string Script =
     	"Pass=PBRPRECOMP;"
 		"RenderColorTarget1=;"
 		"RenderColorTarget2=;" //mono:Do not forget to free it.
-								
-		SSSSS		
+		
+		#if (ENABLE_SSS>0)
+		SSSSS	
+		#endif
 		
 		#if SSDO_COLOR_BLEEDING > 0
 		BLUR_COLOR_BLEEDING
