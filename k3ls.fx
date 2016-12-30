@@ -231,8 +231,8 @@ out float4 ospec
 	IBL(viewNormal,normal,cp.roughness,IBLD,IBLS);
 	
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.63212, 0, cp.metalness)*(1 - diffAmbientMinus);
-	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.3679, 1, cp.metalness)*(1 - specAmbientMinus); //TBD
+	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.85, 0, cp.metalness)*(1 - diffAmbientMinus);
+	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.15, 1, cp.metalness)*(1 - specAmbientMinus); //TBD
 		
 	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
 	float3 surfaceSpecular = cp.varnishAlpha * (lerp(dot(IBLS,RGB2LUM),IBLS*albedo.xyz,0.68) * AmbientBRDF_UE4(0.32.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,lerp(1.0,albedo.xyz,0.68),normal,lightNormal,viewNormal)*LightAmbient);	
