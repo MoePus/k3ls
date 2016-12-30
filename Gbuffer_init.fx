@@ -2,6 +2,8 @@ sampler MMDSamp0 : register(s0);
 sampler MMDSamp1 : register(s1);
 sampler MMDSamp2 : register(s2);
 
+#include "headers\\environment.fxh"
+
 shared texture2D GBuffer_depth : RENDERDEPTHSTENCILTARGET <
     float2 ViewPortRatio = {1.0,1.0};
     string Format = "D24S8";
@@ -17,19 +19,19 @@ shared texture2D GBuffer_albedo: RENDERCOLORTARGET <
 shared texture2D GBuffer_linearDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G32R32F";
+	string Format = NIR32F;
 >;
 
 shared texture2D GBuffer_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G16R16F";
+	string Format = NIR16F;
 >;
 
 shared texture2D GBuffer_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G32R32F";
+	string Format = NIR32F;
 >;
 //////////////////////NO ALPHA/////////////////////////
 
@@ -43,19 +45,19 @@ shared texture2D GBuffer_ALPHA_FRONT_albedo: RENDERCOLORTARGET <
 shared texture2D GBuffer_ALPHA_FRONT_linearDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G32R32F";
+	string Format = NIR32F;
 >;
 
 shared texture2D GBuffer_ALPHA_FRONT_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G16R16F";
+	string Format = NIR16F;
 >;
 
 shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "G32R32F";
+	string Format = NIR32F;
 >;
 /////////////////////ALPHA FRAG////////////////////////
 

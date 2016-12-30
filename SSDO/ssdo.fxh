@@ -1,7 +1,7 @@
 texture2D AOWorkMap : RENDERCOLORTARGET <
 	float2 ViewPortRatio = {1.0, 1.0};
 	#if SSDO_COLOR_BLEEDING > 0
-	string Format = "A16B16G16R16F";
+	string Format = YOR16F;
 	#else
 	string Format = "R16F";
 	#endif

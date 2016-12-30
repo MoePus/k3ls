@@ -35,7 +35,7 @@ static float3 LightAmbient = _LightAmbient * (2 + 4 * directLightPlus);
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
-	string Format = "D3DFMT_A16B16G16R16F";
+	string Format = YOR16F;
 >;
 texture2D mrt_Depth : RENDERDEPTHSTENCILTARGET <
     float2 ViewportRatio = {1.0, 1.0};
@@ -52,7 +52,7 @@ sampler2D MRTSamp = sampler_state {
 
 texture2D diffuseTexture : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
-	string Format = "A16B16G16R16F";
+	string Format = YOR16F;
 >;
 sampler2D diffuseSamp = sampler_state {
     texture = <diffuseTexture>;
@@ -64,7 +64,7 @@ sampler2D diffuseSamp = sampler_state {
 };
 texture2D specularTexture : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
-	string Format = "A16B16G16R16F";
+	string Format = YOR16F;
 >;
 sampler2D specularSamp = sampler_state {
     texture = <specularTexture>;
@@ -92,7 +92,7 @@ sampler sumDepthSamp = sampler_state {
 texture2D sumNormal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "A32B32G32R32F";
+	string Format = YOR32F;
 >;
 sampler sumNormalSamp = sampler_state {
     texture = <sumNormal>;

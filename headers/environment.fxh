@@ -1,11 +1,12 @@
-#define SHADOW_QUALITY				5
+#define SHADOW_QUALITY				4
 #define	SSAORayCount				32
-#define SSDO_COLOR_BLEEDING			7
-#define BLUR_COUNT					8
+#define SSDO_COLOR_BLEEDING			10
+#define BLUR_COUNT					7
 #define VOLUMETRIC_FOG_SAMPLE		120
 #define AA_QUALITY					4
 #define SMAA_EDGE_DETECT_MODE		0
 #define SMAA_WEIGHT_SUBSAMPLE		2
+#define FILL_2_FLOAT_TO_4			1
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define fogColor float3(0.76,0.74,0.1)
@@ -58,6 +59,18 @@
 
 #define Epsilon 0.0001
 #define RGB2LUM float3(0.2125, 0.7154, 0.0721)
+
+#if (FILL_2_FLOAT_TO_4>0)
+#define YOR32F "A32B32G32R32F"
+#define NIR32F "A32B32G32R32F"
+#define YOR16F "A16B16G16R16F"
+#define NIR16F "A16B16G16R16F"
+#else
+#define YOR32F "A32B32G32R32F"
+#define NIR32F "G32R32F"
+#define YOR16F "A16B16G16R16F"
+#define NIR16F "G16R16F"
+#endif
 
 // ¥Ñ¥é¥á©`¥¿ÐûÑÔ
 float2 ViewportSize : VIEWPORTPIXELSIZE;

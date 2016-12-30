@@ -6,7 +6,7 @@
 
 texture Blur4WorkBuffHALF0 : RENDERCOLORTARGET <
     float2 ViewportRatio = {0.6, 0.6};
-    string Format = "A16B16G16R16F";
+    string Format = YOR16F;
 >;
 sampler Blur4WorkBuffHALF0Sampler = sampler_state {
     texture = <Blur4WorkBuffHALF0>;

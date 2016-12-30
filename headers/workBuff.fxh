@@ -1,6 +1,6 @@
 texture Blur2WorkBuff0 : RENDERCOLORTARGET <
     float2 ViewportRatio = {1.0, 1.0};
-    string Format = "G16R16F";
+    string Format = NIR16F;
 >;
 sampler Blur2WorkBuff0Sampler = sampler_state {
     texture = <Blur2WorkBuff0>;
@@ -21,7 +21,7 @@ sampler Blur2WorkBuff0SamplerP = sampler_state {
 
 texture Blur4WorkBuff0 : RENDERCOLORTARGET <
     float2 ViewportRatio = {1.0, 1.0};
-    string Format = "A16B16G16R16F";
+    string Format = YOR16F;
 >;
 sampler Blur4WorkBuff0Sampler = sampler_state {
     texture = <Blur4WorkBuff0>;
@@ -35,7 +35,7 @@ sampler Blur4WorkBuff0Sampler = sampler_state {
 texture2D Blur4WorkBuff1: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "A16B16G16R16F";
+	string Format = YOR16F;
 >;
 sampler Blur4WorkBuff1Sampler = sampler_state {
     texture = <Blur4WorkBuff1>;

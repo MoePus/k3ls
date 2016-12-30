@@ -25,7 +25,7 @@ sampler PSSMsamp = sampler_state {
 
 texture2D ScreenShadowMap: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	string Format = "G16R16F";
+	string Format = NIR16F;
 >;
 sampler ScreenShadowMapSampler = sampler_state {
     texture = <ScreenShadowMap>;
