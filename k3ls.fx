@@ -165,12 +165,9 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
-	float4 color = tex2Dlod(Samp,float4(Tex,0,0));
+	float3 color = tex2D(Samp,Tex).xyz;
 	
-	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
-	color = abs(Depth1 - Depth2);
-	return float4(color.xxx,1);
+	return float4(color,1);
 }
 
 inline float3 CalcTranslucency(float s)
@@ -190,7 +187,7 @@ out float4 odiff,
 out float4 ospec
 )
 {
-	albedo.xyz = easysrgb2linear(albedo.xyz);
+	albedo.xyz = srgb2linear(albedo.xyz);
 	albedo.xyz = max(albedo.xyz,0.0013.xxx);//note: there is no pure black in the world.
 	
 	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
@@ -245,7 +242,7 @@ out float4 ospec
 	ospec = float4((albedo.a>Epsilon)*(ShadowMapVal*specular+ao*ambientSpecular+surfaceSpecular),cp.SSS);
 }
 						
-void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1,out float4 lum : COLOR2)
+void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
 
@@ -274,9 +271,7 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 		ospec.xyz=ospec.xyz*(1-alphaLight.a)+alphaLight.xyz*alphaLight.a;
 	}
 
-	
 	float3 outColor = odiff.xyz+ospec.xyz;
-	lum = float4(log(dot(RGB2LUM,outColor) + Epsilon),0,0,1);
 	return;
 }
 
@@ -300,7 +295,381 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	ocolor = float4(odiff.xyz+ospec.xyz,albedo.a);
 	return;
 }
-																									
+		
+
+void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : COLOR1,out float4 highLight : COLOR2)
+{
+	float4 blurredDiffuse = tex2D(diffuseSamp,Tex);
+	float3 specular = tex2D(specularSamp,Tex).xyz;
+	
+	#if VOLUMETRIC_FOG_SAMPLE > 0
+	float fogFactor = tex2D(FogWorkBuffSampler,Tex).x;
+	fogFactor = clamp(fogFactor,0,0.67) * 1.7;
+	fogFactor = pow(fogFactor,3.6) * 0.62;
+	float3 fog = fogFactor * LightAmbient * fogColor;
+	#else
+	float3 fog = 0;
+	#endif
+
+	#if SSDO_COLOR_BLEEDING > 0
+	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
+	ocolor.xyz = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI);
+	#else
+	ocolor.xyz = blurredDiffuse.xyz + specular;
+	#endif
+	
+	ocolor.xyz *= (1-dot(fog, RGB2LUM)*0.5);
+	ocolor.xyz += fog;
+	ocolor.a = 1;
+	
+	float l = dot(RGB2LUM,ocolor.xyz);
+	lum = float4(log(l + Epsilon),0,0,1);
+	highLight.xyz = saturate(ocolor.xyz-min(0.90,1.84-l))*1.8;
+	highLight.a = 1;
+	return;
+}
+
+
+texture QuterBloomTexture : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.5, 0.5};
+    string Format = YOR16F;
+>;
+sampler QuterBloomSamp = sampler_state {
+    texture = <QuterBloomTexture>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+texture2D QuterBloomDepth : RENDERDEPTHSTENCILTARGET <
+	float2 ViewportRatio = {0.5, 0.5};
+    string Format = "D24S8";
+>;
+
+float4 HLDownSamp4X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
+{
+	float4 color = tex2Dlod(samp, float4(Tex, 0, 0));
+	color += tex2Dlod(samp, float4(Tex + float2(ViewportOffset2.x,0), 0, 0));
+	color += tex2Dlod(samp, float4(Tex + float2(0,ViewportOffset2.y), 0, 0));
+	color += tex2Dlod(samp, float4(Tex + ViewportOffset2, 0, 0));
+	
+	return color/4;
+}
+
+float4 BloomDownSamp2X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
+{
+	float4 color = tex2Dlod(samp, float4(Tex, 0, 1));
+	return color;
+}
+	
+#define DownSampHL4X1st \
+		"RenderColorTarget0=QuterBloomTexture;" \
+		"RenderDepthStencilTarget=QuterBloomDepth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DOQuaterHL1st;"
+		
+#define DownSampHL4X1stPass \
+	pass DOQuaterHL1st < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HLDownSamp4X_PS(Blur4WorkBuff0Sampler);  \
+	}
+		
+#define DownSampBloom4X1st \
+		"RenderColorTarget0=BloomTexture2nd;" \
+    	"Pass=DOHalfBloom1st;"
+		
+#define DownSampBloom4X1stPass \
+	pass DOHalfBloom1st < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 BloomDownSamp2X_PS(BloomTexture1stSamp);  \
+	}
+	
+#define DownSampBloom4X2nd \
+		"RenderColorTarget0=BloomTexture3rd;" \
+    	"Pass=DOHalfBloom2nd;"
+		
+#define DownSampBloom4X2ndPass \
+	pass DOHalfBloom2nd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 BloomDownSamp2X_PS(BloomTexture2ndSamp);  \
+	}
+	
+static const float2 bloomOffset = 0.00121708.xx*ViewportAspect;
+static const float2 bloomOffset2 = bloomOffset * 2;
+static const float2 bloomOffset3 = bloomOffset * 4;
+
+texture BloomTexture1st2Y : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.5, 0.5};
+    string Format = YOR16F;
+>;
+sampler BloomTexture1st2YSamp = sampler_state {
+    texture = <BloomTexture1st2Y>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+texture BloomTexture1st : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.5, 0.5};
+    string Format = YOR16F;
+>;
+sampler BloomTexture1stSamp = sampler_state {
+    texture = <BloomTexture1st>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+texture BloomTexture2nd2Y : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.25, 0.25};
+    string Format = YOR16F;
+>;
+sampler BloomTexture2nd2YSamp = sampler_state {
+    texture = <BloomTexture2nd2Y>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+texture BloomTexture2nd : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.25, 0.25};
+    string Format = YOR16F;
+>;
+sampler BloomTexture2ndSamp = sampler_state {
+    texture = <BloomTexture2nd>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+texture BloomTexture3rd2Y : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.25, 0.25};
+    string Format = YOR16F;
+>;
+sampler BloomTexture3rd2YSamp = sampler_state {
+    texture = <BloomTexture3rd2Y>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+texture BloomTexture3rd : RENDERCOLORTARGET <
+    float2 ViewportRatio = {0.25, 0.25};
+    string Format = YOR16F;
+>;
+sampler BloomTexture3rdSamp = sampler_state {
+    texture = <BloomTexture3rd>;
+    MinFilter = LINEAR;
+    MagFilter = LINEAR;
+    MipFilter = POINT;
+    AddressU  = CLAMP;
+    AddressV = CLAMP;
+};
+
+float4 HDRBloomGaussianPS(float2 Tex: TEXCOORD0, uniform sampler samp, uniform float2 offset) : COLOR0
+{
+	/*float3 sum = 0;
+	float n = 0;
+	float3 ocolor = 0;
+	[unroll] //ループ展開
+	#define AL_SAMP_NUM 8
+    for(int i = -AL_SAMP_NUM; i <= AL_SAMP_NUM; i++){
+        float e = exp(-pow((float)i / (AL_SAMP_NUM / 2.0), 2) / 2); //正規分布
+        float2 stex = Tex + (offset * (float)i);
+        float3 scolor = tex2D(samp, stex).rgb;
+        sum += scolor * e;
+        n += e;
+    }
+	ocolor = sum/n;*/
+	//https://github.com/CRYTEK-CRYENGINE/CRYENGINE/blob/main/Engine/Shaders/HWScripts/CryFX/HDRPostProcess.cfx
+	const float weights[15] = { 153, 816, 3060, 8568, 18564, 31824, 43758, 48620, 43758, 31824, 18564, 8568, 3060, 816, 153 };
+	const float weightSum = 262106.0;
+
+	float2 coords = Tex - offset * 7.0;
+	float3 ocolor = 0;
+	[unroll]
+	for (int i = 0; i < 15; ++i)
+	{
+		ocolor += tex2D(samp, coords).rgb * (weights[i] / weightSum);
+		coords += offset.xy;
+	}
+	
+	return float4(ocolor,1);
+}
+
+#define HDRBloomX1st \
+		"RenderColorTarget0=BloomTexture1st2Y;" \
+    	"Pass=DOHDRBloomX1st;"
+		
+#define HDRBloomX1stPass \
+	pass DOHDRBloomX1st < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(QuterBloomSamp,float2(bloomOffset.x,0));  \
+	}
+	
+#define HDRBloomY1st \
+		"RenderColorTarget0=BloomTexture1st;" \
+    	"Pass=DOHDRBloomY1st;"
+		
+#define HDRBloomY1stPass \
+	pass DOHDRBloomY1st < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(BloomTexture1st2YSamp,float2(0,bloomOffset.y));  \
+	}
+	
+	
+#define HDRBloomX2nd \
+		"RenderColorTarget0=BloomTexture2nd2Y;" \
+    	"Pass=DOHDRBloomX2nd;"
+		
+#define HDRBloomX2ndPass \
+	pass DOHDRBloomX2nd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(BloomTexture2ndSamp,float2(bloomOffset2.x,0));  \
+	}
+	
+#define HDRBloomY2nd \
+		"RenderColorTarget0=BloomTexture2nd;" \
+    	"Pass=DOHDRBloomY2nd;"
+		
+#define HDRBloomY2ndPass \
+	pass DOHDRBloomY2nd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(BloomTexture2nd2YSamp,float2(0,bloomOffset2.y));  \
+	}
+	
+#define HDRBloomX3rd \
+		"RenderColorTarget0=BloomTexture3rd2Y;" \
+    	"Pass=DOHDRBloomX3rd;"
+		
+#define HDRBloomX3rdPass \
+	pass DOHDRBloomX3rd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(BloomTexture3rdSamp,float2(bloomOffset3.x,0));  \
+	}
+	
+#define HDRBloomY3rd \
+		"RenderColorTarget0=BloomTexture3rd;" \
+    	"Pass=DOHDRBloomY3rd;"
+		
+#define HDRBloomY3rdPass \
+	pass DOHDRBloomY3rd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBloomGaussianPS(BloomTexture3rd2YSamp,float2(0,bloomOffset3.y));  \
+	}
+	
+	
+	
+#define HDRBLOOM \
+	HDRBloomX1st \
+	HDRBloomY1st \
+	DownSampBloom4X1st \
+	HDRBloomX2nd \
+	HDRBloomY2nd \
+	DownSampBloom4X2nd \
+	HDRBloomX3rd \
+	HDRBloomY3rd
+	
+#define HDRBLOOMPASS \
+	HDRBloomX1stPass \
+	HDRBloomY1stPass \
+	DownSampBloom4X1stPass \
+	HDRBloomX2ndPass \
+	HDRBloomY2ndPass \
+	DownSampBloom4X2ndPass \
+	HDRBloomX3rdPass \
+	HDRBloomY3rdPass
+
+	
+float3 OverExposure(float3 color){
+	//AutoLuminous4
+    float OverExposureRatio = 0.85;
+	float3 newcolor = color;
+    
+    newcolor.gb += max(color.r - 0.95, 0) * OverExposureRatio * float2(0.65, 0.6);
+    newcolor.rb += max(color.g - 0.95, 0) * OverExposureRatio * float2(0.5, 0.6);
+    newcolor.rg += max(color.b - 0.8, 0) * OverExposureRatio * float2(0.5, 0.6);
+    
+    return newcolor;
+}
+
+
+void HDRBLOOMCOMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
+{
+	ocolor = float4(0,0,0,1);
+	float3 bloom0 = tex2D(BloomTexture1stSamp,Tex).xyz;
+	float3 bloom1 = tex2D(BloomTexture2ndSamp,Tex).xyz;
+	float3 bloom2 = tex2D(BloomTexture3rdSamp,Tex).xyz;
+	
+	ocolor.xyz = OverExposure(bloom0) + bloom1*0.6 + bloom2*0.4;
+	return;
+}
+
+#define HDRBLOOMCOMP\
+		"RenderColorTarget0=Blur4WorkBuff0;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DOHDRBLOOMCOMP;"
+		
+#define HDRBLOOMCOMPPASS \
+	pass DOHDRBLOOMCOMP < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 HDRBLOOMCOMP_PS();  \
+	}
+	
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
 		"RenderColorTarget0=Blur2WorkBuff0;" \
@@ -354,11 +723,7 @@ string Script =
 		
 		SSSHADOWOBJ
 		
-		"RenderColorTarget0=AOWorkMap;"
-    	"RenderDepthStencilTarget=mrt_Depth;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=AOPass;"
+		SSDO_COLORBLEEDING
 		
 		BLUR_PSSM_AO
 		
@@ -368,15 +733,13 @@ string Script =
 		
 		"RenderColorTarget0=diffuseTexture;"
 		"RenderColorTarget1=specularTexture;"
-		"RenderColorTarget2=lumTexture;"
     	"RenderDepthStencilTarget=mrt_Depth;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=PBRPRECOMP;"
-		"RenderColorTarget1=;"
-		"RenderColorTarget2=;" //mono:Do not forget to free it.
+		"RenderColorTarget1=;" //mono:Do not forget to free it.
 		
-		#if (ENABLE_SSS>0)
+		#if ENABLE_SSS > 0
 		SSSSS	
 		#endif
 		
@@ -384,11 +747,27 @@ string Script =
 		BLUR_COLOR_BLEEDING
 		#endif
 		
-		DownSacleLumAdapt
-		
 		#if VOLUMETRIC_FOG_SAMPLE > 0
 		FOG_RAYMARCH
 		#endif
+		
+		"RenderColorTarget0=Blur4WorkBuff1;"
+		"RenderColorTarget1=lumTexture;"
+		"RenderColorTarget2=Blur4WorkBuff0;"
+    	"RenderDepthStencilTarget=mrt_Depth;"
+		"ClearSetDepth=ClearDepth;Clear=Depth;"
+		"ClearSetColor=ClearColor;Clear=Color;"
+    	"Pass=PBRAFTERCOMP;"
+		"RenderColorTarget1=;"
+		"RenderColorTarget2=;"
+		
+		DownSacleLumAdapt
+		
+		DownSampHL4X1st
+		
+		HDRBLOOM
+		
+		HDRBLOOMCOMP
 		
 		"RenderColorTarget0=mrt;"
     	"RenderDepthStencilTarget=mrt_Depth;"
@@ -425,7 +804,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(Depth_ALPHA_FRONT_GbufferSamp);
+		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff0Sampler);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
@@ -502,6 +881,15 @@ string Script =
         PixelShader  = compile ps_3_0 PBR_ALPHAFRONT_PS();
     }
 	
+	pass PBRAFTERCOMP < string Script= "Draw=Buffer;"; > 
+	{
+		AlphaBlendEnable = FALSE;
+		ZFUNC=ALWAYS;
+		ALPHAFUNC=ALWAYS;
+        VertexShader = compile vs_3_0 POST_VS();
+        PixelShader  = compile ps_3_0 COMP_PS();
+    }
+	
 	AdaptLumPass
 	
 	pass ToneMapping < string Script= "Draw=Buffer;"; > 
@@ -541,4 +929,7 @@ string Script =
 	#if VOLUMETRIC_FOG_SAMPLE > 0
 	FOGPASS
 	#endif
+	DownSampHL4X1stPass
+	HDRBLOOMPASS
+	HDRBLOOMCOMPPASS
 }

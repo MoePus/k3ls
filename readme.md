@@ -1,7 +1,7 @@
 #K3LS#
 又一个mikumikudance用基于物理的渲染包
 
-    版本 1.3.0
+    版本 1.3.1
     
 ##使用方法:
 ###启用渲染
@@ -25,32 +25,47 @@
 * SHADOW_QUALITY
         范围1-5
         显存够大就往大了开
+		
 * SSAORayCount
         推荐范围24-32
         决定AO与COLOR—BLEEDING的质量
+		
 * SSDO_COLOR_BLEEDING
         推荐范围15-25，0为关闭此效果
         COLOR—BLEEDING效果的强度
+		
 * BLUR_COUNT
         推荐数值6
         影响AO与阴影的模糊强度
         如果不是闲得蛋疼请不要试着修改这个选项
+		
 * VOLUMETRIC_FOG_SAMPLE
         推荐范围80-140，0为关闭此效果
         体积雾的精确度，过低的值会造成漏光，以及噪音
+		
 * AA_QUALITY
         抗锯齿强度，不推荐5
         大于1为SMAA
+		
 * SMAA_EDGE_DETECT_MODE
         在开启SMAA的情况下此选项生效
         0为通过深度判断物体边缘
         1为通过亮度判断物体边缘
         推荐0
+		
 * SMAA_WEIGHT_SUBSAMPLE
         在开启SMAA的情况下此选项生效
         SMAA混合子像素数量
         控制nX-SMAA
         推荐1
+		
+* FILL_2_FLOAT_TO_4
+		N卡建议1
+		A卡建议0
+		
+* ENABLE_SSS
+		控制SSSSS效果
+		建议1
 
 
 ##Reference:
@@ -75,7 +90,9 @@
 * 改进Gbuffer √
 * 屏幕空间阴影 √
 * 基于物理的体积雾 √
-* FULL HDR
+* 加速SSSSS
+* FULL HDR 40%
+* bokeh
 * 多光源
 
 ##TBD

@@ -86,3 +86,10 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 }
 
 #undef DepthLength
+
+#define SSDO_COLORBLEEDING \
+		"RenderColorTarget0=AOWorkMap;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetDepth=ClearDepth;Clear=Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=AOPass;"

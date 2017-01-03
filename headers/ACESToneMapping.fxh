@@ -207,40 +207,20 @@ inline float3 AF(float3 x)
 
 float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 {
-	float4 blurredDiffuse = tex2D(diffuseSamp,Tex);
-	float3 specular = tex2D(specularSamp,Tex).xyz;
+	float3 ocolor = tex2D(Blur4WorkBuff1Sampler,Tex).xyz;
+	float3 bloom = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
+	ocolor += bloom;
 	
-	#if VOLUMETRIC_FOG_SAMPLE > 0
-	float fogFactor = tex2D(FogWorkBuffSampler,Tex).x;
-	fogFactor = clamp(fogFactor,0,0.67) * 1.7;
-	fogFactor = pow(fogFactor,3.6) * 0.62;
-	float3 fog = fogFactor * LightAmbient * fogColor;
-	#else
-	float3 fog = 0;
-	#endif
-
-	#if SSDO_COLOR_BLEEDING > 0
-	float3 GI = tex2D(AOWorkMapSampler,Tex).xyz;
-	float3 ocolor = (blurredDiffuse.xyz + specular)*(1+SSDO_COLOR_BLEEDING*GI);
-	#else
-	float3 ocolor = blurredDiffuse.xyz + specular;
-	#endif
-	
-	ocolor *= (1-dot(fog, RGB2LUM)*0.4);
-
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0)).r;
 
+	ocolor *= temperatureColor;
 	float lum = dot(ocolor, RGB2LUM);
 	float3 color = lerp(lum * BLUE_SHIFT, ocolor, saturate(16.0f * lum));
 	
 	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
 	color = AF(color * adapted_lum_dest);
-		
-	color = 1.0.xxx - (1.0.xxx-color)*(1.0.xxx-fog);
-	
-	color *= temperatureColor;
 	
 	return float4(color,1);
 }

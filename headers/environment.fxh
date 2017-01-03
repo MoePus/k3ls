@@ -3,7 +3,7 @@
 #define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					7
 #define VOLUMETRIC_FOG_SAMPLE		0
-#define AA_QUALITY					4
+#define AA_QUALITY					3
 #define SMAA_EDGE_DETECT_MODE		0
 #define SMAA_WEIGHT_SUBSAMPLE		2
 #define ENABLE_SSS					0
