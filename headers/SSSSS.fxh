@@ -4,11 +4,22 @@
 int blurCount = 3;
 int BlurIndex = 0;
 
+float4 SSSMakeStencil_PS(float2 Tex: TEXCOORD0): COLOR
+{
+	float SSS_strength = tex2D(specularSamp,Tex).w;
+	if(SSS_strength<=Epsilon)
+	{
+		discard;
+	}
+	return float4(SSS_strength*3.5f,0,0,1);
+}
+
+
 #define GENBlurPS(PS_name,SAMP_name,step_mod) \
 float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
     const float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 }; \
     const float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 }; \
-	float SSS_strength = tex2D(specularSamp,Tex).w * 3.5f; \
+	float SSS_strength = tex2D(Blur2WorkBuff0Sampler,Tex).x; \
 	float2 step = float2(0.0,0.0); \
 	step_mod = (1 + BlurIndex)*SSS_strength; \
 	step *= 1000*ViewportOffset2; \
@@ -50,6 +61,12 @@ float4 Blend_PS(float2 Tex: TEXCOORD0 ) : COLOR
 }
 
 #define SSSSS \
+	"RenderColorTarget0=Blur2WorkBuff0;" \
+	"RenderDepthStencilTarget=mrt_Depth;" \
+	"ClearSetDepth=ClearDepth;Clear=Depth;" \
+	"ClearSetColor=ClearColor;Clear=Color;" \
+	"Pass=SSSMAKEStencil;" \
+	\
 	"LoopByCount=blurCount;" \
 	"LoopGetIndex=BlurIndex;"	\
 		\
@@ -65,7 +82,60 @@ float4 Blend_PS(float2 Tex: TEXCOORD0 ) : COLOR
 		"RenderDepthStencilTarget=mrt_Depth;" \
     	"Pass=Blend;" \
 		\
-	"LoopEnd=;"
+	"LoopEnd=;" \
+	"RenderDepthStencilTarget=mrt_Depth;" \
+	"ClearSetDepth=ClearDepth;Clear=Depth;"
+
+
+	
+#define SSSSSPASS \
+	pass SSSMAKEStencil < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+        StencilEnable = true; \
+        StencilPass = REPLACE; \
+        StencilRef = 1; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+		PixelShader  = compile ps_3_0 SSSMakeStencil_PS(); \
+    } \
+	pass BLURX < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+		StencilEnable = true; \
+        StencilPass = KEEP; \
+        StencilFunc = EQUAL; \
+        StencilRef = 1; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+		PixelShader  = compile ps_3_0 Blur_PSX(); \
+    } \
+	pass BLURY < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+		StencilEnable = true; \
+        StencilPass = KEEP; \
+        StencilFunc = EQUAL; \
+        StencilRef = 1; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+		PixelShader  = compile ps_3_0 Blur_PSY(); \
+    } \
+	pass Blend < string Script= "Draw=Buffer;"; >  \
+	{ \
+		AlphaBlendEnable = FALSE; \
+		ZFUNC=ALWAYS; \
+		ALPHAFUNC=ALWAYS; \
+		StencilEnable = true; \
+        StencilPass = KEEP; \
+        StencilFunc = EQUAL; \
+        StencilRef = 1; \
+        VertexShader = compile vs_3_0 POST_VS(); \
+        PixelShader  = compile ps_3_0 Blend_PS(); \
+    }
 	
 #undef SSS_2XSamp
 #undef SSS_2BSamp

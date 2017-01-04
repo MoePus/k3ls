@@ -18,6 +18,7 @@ GENController(6)
 GENController(7)
 GENController(8)
 
+/*
 #define controllerAmount 10
 #define controllerDim    8 
 texture2D controllerBuff : RENDERCOLORTARGET <
@@ -33,7 +34,7 @@ sampler2D controllerBuffSamp = sampler_state {
     AddressU  = CLAMP;
     AddressV = CLAMP;
 };
-/*
+
 void buffControllers(float2 Tex: TEXCOORD0,out float4 param : COLOR0)
 {
 #define putParams(_cid) \

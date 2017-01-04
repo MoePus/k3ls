@@ -120,7 +120,9 @@ struct POST_OUTPUT {
 #include "pssm\\pssm.fxh"
 #include "ssdo\\ssdo.fxh"
 #include "headers\\blur.fxh"
+#if ENABLE_SSS > 0
 #include "headers\\SSSSS.fxh"
+#endif	
 #if VOLUMETRIC_FOG_SAMPLE > 0
 #include "headers\\fog.fxh"
 #endif	
@@ -900,32 +902,10 @@ string Script =
         VertexShader = compile vs_3_0 POST_VS();
 		PixelShader  = compile ps_3_0 ToneMapping_PS();
     }
-	
-	
-	pass BLURX < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 Blur_PSX();
-    }
-	pass BLURY < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 Blur_PSY();
-    }
-	pass Blend < string Script= "Draw=Buffer;"; > 
-	{
-		AlphaBlendEnable = FALSE;
-		ZFUNC=ALWAYS;
-		ALPHAFUNC=ALWAYS;
-        VertexShader = compile vs_3_0 POST_VS();
-        PixelShader  = compile ps_3_0 Blend_PS();
-    }
+
+	#if ENABLE_SSS > 0
+	SSSSSPASS
+	#endif
 	#if VOLUMETRIC_FOG_SAMPLE > 0
 	FOGPASS
 	#endif
@@ -933,3 +913,4 @@ string Script =
 	HDRBLOOMPASS
 	HDRBLOOMCOMPPASS
 }
+

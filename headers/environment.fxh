@@ -6,7 +6,7 @@
 #define AA_QUALITY					3
 #define SMAA_EDGE_DETECT_MODE		0
 #define SMAA_WEIGHT_SUBSAMPLE		2
-#define ENABLE_SSS					0
+#define ENABLE_SSS					1
 #define FILL_2_FLOAT_TO_4			1
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define fogColor float3(0.76,0.74,0.1)
