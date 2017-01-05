@@ -297,7 +297,30 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	ocolor = float4(odiff.xyz+ospec.xyz,albedo.a);
 	return;
 }
-		
+
+
+texture AL_EmitterRT: OFFSCREENRENDERTARGET <
+    string Description = "EmitterDrawRenderTarget for AutoLuminous.fx";
+    float2 ViewPortRatio = {1.0,1.0};
+    float4 ClearColor = { 0, 0, 0, 1 };
+    float ClearDepth = 1.0;
+    bool AntiAlias = true;
+    int MipLevels = 0;
+    string Format = YOR16F;
+    string DefaultEffect = 
+        "self = hide;"
+        "*.x=hide;"
+        "* = AutoLuminous\\AL_Object.fx;" 
+    ;
+>;
+sampler EmitterView = sampler_state {
+    texture = <AL_EmitterRT>;
+    MinFilter = Linear;
+    MagFilter = Linear;
+    MipFilter = Point;
+    AddressU  = Clamp;
+    AddressV = Clamp;
+};
 
 void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : COLOR1,out float4 highLight : COLOR2)
 {
@@ -326,7 +349,10 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	
 	float l = dot(RGB2LUM,ocolor.xyz);
 	lum = float4(log(l + Epsilon),0,0,1);
-	highLight.xyz = saturate(ocolor.xyz-min(0.90,1.84-l))*1.8;
+	highLight = tex2Dlod(EmitterView, float4(Tex, 0, 0));
+	highLight.xyz = easysrgb2linear(highLight.xyz)*5;
+	highLight.xyz += max(0,ocolor.xyz-min(1.5,1.5-max(0,l-1.0)));
+	highLight.xyz *= 2.0;
 	highLight.a = 1;
 	return;
 }
@@ -351,6 +377,7 @@ texture2D QuterBloomDepth : RENDERDEPTHSTENCILTARGET <
 
 float4 HLDownSamp4X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
 {
+	Tex += ViewportOffset2*4;
 	float4 color = tex2Dlod(samp, float4(Tex, 0, 0));
 	color += tex2Dlod(samp, float4(Tex + float2(ViewportOffset2.x,0), 0, 0));
 	color += tex2Dlod(samp, float4(Tex + float2(0,ViewportOffset2.y), 0, 0));
@@ -361,7 +388,8 @@ float4 HLDownSamp4X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
 
 float4 BloomDownSamp2X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
 {
-	float4 color = tex2Dlod(samp, float4(Tex, 0, 1));
+	Tex += ViewportOffset2*4;
+	float4 color = tex2Dlod(samp, float4(Tex, 0, 0));
 	return color;
 }
 	
@@ -410,7 +438,7 @@ float4 BloomDownSamp2X_PS(float2 Tex: TEXCOORD0, uniform sampler samp) : COLOR0
 		PixelShader  = compile ps_3_0 BloomDownSamp2X_PS(BloomTexture2ndSamp);  \
 	}
 	
-static const float2 bloomOffset = 0.00121708.xx*ViewportAspect;
+static const float2 bloomOffset = ViewportOffset2*0.5;
 static const float2 bloomOffset2 = bloomOffset * 2;
 static const float2 bloomOffset3 = bloomOffset * 4;
 
@@ -651,7 +679,8 @@ void HDRBLOOMCOMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	float3 bloom1 = tex2D(BloomTexture2ndSamp,Tex).xyz;
 	float3 bloom2 = tex2D(BloomTexture3rdSamp,Tex).xyz;
 	
-	ocolor.xyz = OverExposure(bloom0) + bloom1*0.6 + bloom2*0.4;
+	ocolor.xyz = OverExposure(bloom0) + bloom1 + bloom2;
+	//ocolor.xyz = 0;
 	return;
 }
 
@@ -806,7 +835,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(Blur4WorkBuff0Sampler);
+		PixelShader  = compile ps_3_0 COPY_PS(EmitterView);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {

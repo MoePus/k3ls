@@ -162,17 +162,6 @@ float4 ColorRender_PS() : COLOR
     return EdgeColor;
 }
 
-// 輪郭描画用テクニック
-technique EdgeTec < string MMDPass = "edge"; > {
-    pass DrawEdge {
-        AlphaBlendEnable = FALSE;
-        AlphaTestEnable  = FALSE;
-
-        VertexShader = compile vs_2_0 ColorRender_VS();
-        PixelShader  = compile ps_2_0 ColorRender_PS();
-    }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // 影（非セルフシャドウ）描画
@@ -190,15 +179,6 @@ float4 Shadow_PS() : COLOR
     // アンビエント色で塗りつぶし
     return float4(AmbientColor.rgb, 0.65f);
 }
-
-// 影描画用テクニック
-technique ShadowTec < string MMDPass = "shadow"; > {
-    pass DrawShadow {
-        VertexShader = compile vs_2_0 Shadow_VS();
-        PixelShader  = compile ps_2_0 Shadow_PS();
-    }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // オブジェクト描画（セルフシャドウOFF）
@@ -236,13 +216,6 @@ VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : T
     // テクスチャ座標
     Out.Tex = Tex;
     
-    if ( useSphereMap ) {
-        // スフィアマップテクスチャ座標
-        float2 NormalWV = mul( Out.Normal, (float3x3)ViewMatrix );
-        Out.SpTex.x = NormalWV.x * 0.5f + 0.5f;
-        Out.SpTex.y = NormalWV.y * -0.5f + 0.5f;
-    }
-    
     return Out;
 }
 
@@ -257,11 +230,6 @@ float4 Basic_PS(VS_OUTPUT IN, uniform bool useTexture, uniform bool useSphereMap
     if ( useTexture ) {
         // テクスチャ適用
         Color *= tex2D( ObjTexSampler, IN.Tex );
-    }
-    if ( useSphereMap ) {
-        // スフィアマップ適用
-        if(spadd) Color.rgb += tex2D(ObjSphareSampler,IN.SpTex).rgb;
-        else      Color *= tex2D(ObjSphareSampler,IN.SpTex);
     }
     
     if ( useToon ) {
@@ -405,16 +373,6 @@ float4 ZValuePlot_PS( float4 ShadowMapTex : TEXCOORD0 ) : COLOR
     return float4(ShadowMapTex.z/ShadowMapTex.w,0,0,1);
 }
 
-// Z値プロット用テクニック
-technique ZplotTec < string MMDPass = "zplot"; > {
-    pass ZValuePlot {
-        AlphaBlendEnable = FALSE;
-        VertexShader = compile vs_2_0 ZValuePlot_VS();
-        PixelShader  = compile ps_2_0 ZValuePlot_PS();
-    }
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // オブジェクト描画（セルフシャドウON）
 
@@ -457,13 +415,6 @@ BufferShadow_OUTPUT BufferShadow_VS(float4 Pos : POSITION, float3 Normal : NORMA
     // テクスチャ座標
     Out.Tex = Tex;
     
-    if ( useSphereMap ) {
-        // スフィアマップテクスチャ座標
-        float2 NormalWV = mul( Out.Normal, (float3x3)ViewMatrix );
-        Out.SpTex.x = NormalWV.x * 0.5f + 0.5f;
-        Out.SpTex.y = NormalWV.y * -0.5f + 0.5f;
-    }
-    
     return Out;
 }
 
@@ -482,17 +433,7 @@ float4 BufferShadow_PS(BufferShadow_OUTPUT IN, uniform bool useTexture, uniform 
         Color *= TexColor;
         ShadowColor *= TexColor;
     }
-    if ( useSphereMap ) {
-        // スフィアマップ適用
-        float4 TexColor = tex2D(ObjSphareSampler,IN.SpTex);
-        if(spadd) {
-            Color.rgb += TexColor.rgb;
-            ShadowColor.rgb += TexColor.rgb;
-        } else {
-            Color *= TexColor;
-            ShadowColor *= TexColor;
-        }
-    }
+
     // スペキュラ適用
     Color.rgb += Specular;
     
@@ -525,7 +466,7 @@ float4 BufferShadow_PS(BufferShadow_OUTPUT IN, uniform bool useTexture, uniform 
         
     }
     
-    return saturate(Color);
+    return saturate(Color*0.9);
 }
 
 // オブジェクト描画用テクニック（アクセサリ用）
@@ -628,3 +569,6 @@ technique MainTecBS7  < string MMDPass = "object_ss"; bool UseTexture = true; bo
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+technique EdgeTec < string MMDPass = "edge"; > {}
+technique ShadowTec < string MMDPass = "shadow"; > {}
+technique ZplotTec < string MMDPass = "zplot"; > { }

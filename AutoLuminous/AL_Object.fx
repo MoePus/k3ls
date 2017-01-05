@@ -383,29 +383,6 @@ VS_OUTPUT Basic_VS(MMM_SKINNING_INPUT IN, uniform bool useSphereMap)
     Out.Color.rgb *= max(timerate2 * (1 - BlinkMin) + BlinkMin, !IsALCode);
     Out.Color.rgb *= max(timerate1, SystemCode.z != 0);
     
-    // 発光シーケンス ////////////////////////
-    
-    if(useSphereMap){
-        //float4 spcolor1 = tex2Dlod(ObjSphareSampler, float4(1,0,0,0));
-        float4 spcolor2 = tex2Dlod(ObjSphareSampler, float4(1,1,0,0));
-        
-        float4 spcolor3 = tex2Dlod(ObjSphareSampler, float4(0,1,0,0));
-        
-        float Ts = spcolor3.r * (255 * 60) + spcolor3.g * 255 + spcolor3.b * (255 / 100.0);
-        Ts *= ClockShift;
-        
-        float t1 = frac((ftime + Ph * IsALCode) / Ts);
-        float4 spcolor4 = tex2Dlod(ObjSphareSampler, float4(t1 * 0.25,0,0,0));
-        float4 spcolor5 = tex2Dlod(ObjSphareSampler2, float4(t1 * 0.25,0,0,0));
-        
-        float2 sel = DecisionSequenceCode(spcolor2);
-        
-        Out.Color.rgb *= lerp(float3(1,1,1), lerp(spcolor5.rgb, spcolor4.rgb, sel.y), sel.x);
-        
-    }
-    
-    ////////////////////////
-    
     Out.Tex.xy = IN.Tex; //テクスチャUV
     Out.Tex.z = IsALCode * AppendCode.x;
     Out.Tex.w = IsALCode * flags.x;
