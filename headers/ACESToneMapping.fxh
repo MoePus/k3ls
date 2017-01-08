@@ -192,7 +192,7 @@ float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 
 float EyeAdaption(float lum)
 {
-	return lerp(0.04f, 0.302f, lum);
+	return lerp(0.04f, 0.168f, lum);
 }
 
 inline float3 AF(float3 x)
@@ -221,7 +221,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
 	color = AF(color * adapted_lum_dest);
-	
+	color *= 1.3;
 	return float4(color,1);
 }
 

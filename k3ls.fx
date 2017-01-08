@@ -15,7 +15,7 @@ static float FOG_G = max(0,FOGXYZ.x);
 static float FOG_S = max(1.5,10.0 + FOGXYZ.y);
 static float FOG_A = max(0,1+FOGXYZ.z);
 
-//float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
+float HDRSTRENGTH : CONTROLOBJECT < string name = "(self)"; string item = "Tr"; >;
 float sss_correction : CONTROLOBJECT < string name = "(self)"; string item = "Si"; >;
 
 float  AmbLightPower		: CONTROLOBJECT < string name = "Ambient.x"; string item="Si"; >;
@@ -346,12 +346,12 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	ocolor.xyz *= (1-dot(fog, RGB2LUM)*0.5);
 	ocolor.xyz += fog;
 	ocolor.a = 1;
-	
+			
 	float l = dot(RGB2LUM,ocolor.xyz);
 	lum = float4(log(l + Epsilon),0,0,1);
 	highLight = tex2Dlod(EmitterView, float4(Tex, 0, 0));
 	highLight.xyz = easysrgb2linear(highLight.xyz)*11;
-	highLight.xyz += max(0,ocolor.xyz-1.3)/max(1,l*0.032);
+	highLight.xyz += max(0,ocolor.xyz*1.1-2.3+HDRSTRENGTH)/max(0.95,l*0.032);
 	highLight.xyz *= 1.8;
 	highLight.a = 1;
 	return;
