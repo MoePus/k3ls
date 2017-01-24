@@ -25,7 +25,7 @@ shared texture2D GBuffer_linearDepth: RENDERCOLORTARGET <
 shared texture2D GBuffer_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = NIR16F;
+	string Format = YOR16F;
 >;
 
 shared texture2D GBuffer_normal: RENDERCOLORTARGET <
@@ -51,7 +51,7 @@ shared texture2D GBuffer_ALPHA_FRONT_linearDepth: RENDERCOLORTARGET <
 shared texture2D GBuffer_ALPHA_FRONT_spa: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = NIR16F;
+	string Format = YOR16F;
 >;
 
 shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <

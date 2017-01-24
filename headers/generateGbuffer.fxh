@@ -41,7 +41,9 @@ technique ShadowTec < string MMDPass = "shadow"; > {}
 #define getCon(_id) \
 float normalScale : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "normalScale"; >; \
 float normalStrength : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "normalStrength"; >; \
-float specularStrength : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "specularStrength"; >;
+float specularStrength : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "specularStrength"; >; \
+float roughness : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "roughness"; >; \
+float metalness : CONTROLOBJECT < string name = "K3LS_A_con_"#_id".pmx"; string item = "metalness"; >;
 
 getCon(_id)
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +92,7 @@ inline float3x3 compute_tangent_frame(float3 Normal, float3 View, float2 UV)
     return float3x3(normalize(Tangent), normalize(Binormal), Normal);
 }
 
-void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,uniform const bool usespa,out GbufferParam gbuffer)
+void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,out GbufferParam gbuffer)
 {
 	if (useTexture) 
 	{
@@ -99,7 +101,6 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
     }
 
 	float3 normal,spa;
-	float roughnessFactor = 0;
 	
 	if(useNormalMap) 
 	{
@@ -117,29 +118,18 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	}
 	normal = normalize(normal);
 	
-	if(usespa)
-	{
-		float4 t = tex2D(ObjToonSampler, IN.Tex);
-		spa = t.xyz * (1-specularStrength);
-		roughnessFactor = (1-t.w)/10.0;
-	}
-	else
-	{
-		spa = 1-specularStrength;
-	}
-
 	float alpha = DiffuseColor.a;
 	clip(alpha>=1-Epsilon?1:-1);
-	
-	float spaShineness = dot(spa, RGB2LUM);
+
+	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id+roughnessFactor,0,0);
-	gbuffer.spa = float4(spaShineness,normal.z,0,0);
+	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id,0,0);
+	gbuffer.spa = float4(spaShineness,normal.z,roughness,metalness);
 	gbuffer.Normal = float4(normal.xy,0,0);
 	return;
 }
 
-void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,uniform const bool usespa,out GbufferParam gbuffer)
+void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useNormalMap,out GbufferParam gbuffer)
 {
 	if (useTexture) 
 	{
@@ -148,8 +138,7 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
     }
 
 	float3 normal,spa;
-	float roughnessFactor = 0;
-	
+
 	if(useNormalMap) 
 	{
 		float2 scaledTex = IN.Tex*(1+normalScale*10.0f);
@@ -165,31 +154,20 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 		normal = IN.Normal;
 	}
 	normal = normalize(normal);
-	
-	if(usespa)
-	{
-		float4 t = tex2D(ObjToonSampler, IN.Tex);
-		spa = t.xyz * (1-specularStrength);
-		roughnessFactor = (1-t.w)/10.0;
-	}
-	else
-	{
-		spa = 1-specularStrength;
-	}
-	
+
 	float alpha = DiffuseColor.a;
 	clip(alpha>=1-Epsilon || alpha<Epsilon?-1:1);
-	
-	float spaShineness = dot(spa, RGB2LUM);
+
+	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id+roughnessFactor,0,1);
-	gbuffer.spa = float4(spaShineness,normal.z,0,1);
+	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id,0,1);
+	gbuffer.spa = float4(spaShineness,normal.z,roughness,metalness);
 	gbuffer.Normal = float4(normal.xy,0,1);
 	return;
 }
 
-#define GENTec(tecname, _mmdpass, _useTexture, _usespheremap, _usetoonmap) \
-technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap; bool UseToon = _usetoonmap;\
+#define GENTec(tecname, _mmdpass, _useTexture, _usespheremap) \
+technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; bool UseSphereMap = _usespheremap; \
  string Script = \
         "RenderColorTarget0=GBuffer_albedo;" \
         "RenderColorTarget1=GBuffer_linearDepth;" \
@@ -209,27 +187,20 @@ technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; b
     pass DrawObject {  \
 	AlphaBlendEnable = false; \
 	VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap,_usetoonmap); } \
+    PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); } \
 	\
 	pass Draw_ALPHA_FRONT_Object {  \
+	AlphaBlendEnable = false; \
 	VertexShader = compile vs_3_0 Basic_VS(); \
-    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap,_usetoonmap); }}
+    PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap); }}
 
 
-GENTec(MainTec0,object,false,false,false)
-GENTec(MainTec1,object,true,false,false)
-GENTec(MainTec2,object,false,true,false)
-GENTec(MainTec3,object,true,true,false)
-GENTec(MainTec4,object,false,false,true)
-GENTec(MainTec5,object,true,false,true)
-GENTec(MainTec6,object,false,true,true)
-GENTec(MainTec7,object,true,true,true)
+GENTec(MainTec0,object,false,false)
+GENTec(MainTec1,object,true,false)
+GENTec(MainTec2,object,false,true)
+GENTec(MainTec3,object,true,true)
 
-GENTec(MainTecBS0,object_ss,false,false,false)
-GENTec(MainTecBS1,object_ss,true,false,false)
-GENTec(MainTecBS2,object_ss,false,true,false)
-GENTec(MainTecBS3,object_ss,true,true,false)
-GENTec(MainTecBS4,object_ss,false,false,true)
-GENTec(MainTecBS5,object_ss,true,false,true)
-GENTec(MainTecBS6,object_ss,false,true,true)
-GENTec(MainTecBS7,object_ss,true,true,true)
+GENTec(MainTecBS0,object_ss,false,false)
+GENTec(MainTecBS1,object_ss,true,false)
+GENTec(MainTecBS2,object_ss,false,true)
+GENTec(MainTecBS3,object_ss,true,true)

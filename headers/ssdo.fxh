@@ -40,7 +40,8 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	float Depth = tex2D(sumDepthSamp,Tex).x;
 	
 	float3 N = tex2D(sumNormalSamp,Tex).xyz;
-	float3 WPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
+	float2 cTex = Tex - ViewportOffset;
+	float3 WPos = mul(coord2WorldViewPos(cTex,Depth),(float3x3)ViewInverse);
 
 	float radMul = 1.0 / SSAORayCount * (3.14 * 2.0 * 7.0);
 	float radAdd = hash12(Tex*Depth*ftime) * (PI * 2.0);
@@ -59,7 +60,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	{
 		float2 sc;
 		sincos(totalCRad + radAdd, sc.x, sc.y);
-		float2 uv = sc * totalCAORad + Tex;
+		float2 uv = sc * totalCAORad + cTex;
 
 		float ao = GetOccRate(uv, WPos, N);
 		sum += ao;

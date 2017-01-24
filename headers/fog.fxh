@@ -37,7 +37,7 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 {
 	float depth = tex2D(sumDepthSamp,Tex).x;
 	
-	float3 VPos = coord2WorldViewPos(Tex,depth);
+	float3 VPos = coord2WorldViewPos(Tex - ViewportOffset,depth);
 	float4 WPos = mul(float4(VPos,1),ViewInverse);
 
 	float3 view = WPos - CameraPosition;

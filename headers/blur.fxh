@@ -13,7 +13,7 @@ inline float getBaseSharpness(float depth)
 }
 inline float getExtraSharpness(float id1,float id2)
 {
-	return 6*min(1,abs(floor(id1)-floor(id2)));
+	return 8.0*min(1,abs(id1-id2));
 }
 float4 ShadowMapBlurAxBxToTxy_PS(float2 coord : TEXCOORD0, uniform sampler2D source1, uniform sampler2D source2, uniform float2 offset) : COLOR
 {

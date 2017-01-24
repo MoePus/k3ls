@@ -184,7 +184,7 @@ inline float3 CalcTranslucency(float s)
 		+ float3(0.078f, 0.0f, 0.0f) * exp(dd / 7.41f);
 }
 
-inline void PBR_shade(float id,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
+inline void PBR_shade(float id,float roughness,float metalness,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
 out float4 odiff,
 out float4 ospec
 )
@@ -205,39 +205,30 @@ out float4 ospec
 
 	ConParam cp;
 	getConParams(id,cp);
-	cp.roughness *= 1-frac(id)*10;
 	
-	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),cp.metalness);
+	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),metalness);
+
+	float en = lerp(DiffuseBRDF(roughness,normal,lightNormal,viewNormal),DiffuseBSDF(roughness,normal,lightNormal,viewNormal),min(1,cp.SSS*0.76));
+	float3 diffuse = NL*albedo.xyz*invPi*en*LightAmbient*(1-metalness);
+	float3 specular = NL*BRDF(roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
 	
-	float en = lerp(DiffuseBRDF(cp.roughness,normal,lightNormal,viewNormal),DiffuseBSDF(cp.roughness,normal,lightNormal,viewNormal),min(1,cp.SSS*0.76));
-	float3 diffuse = NL*albedo.xyz*invPi*en*LightAmbient*(1-cp.metalness);
-	float3 specular = NL*BRDF(cp.roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
-	
-	float3 trans;
-	if(cp.translucency>Epsilon)
-	{
-		float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
-		trans = CalcTranslucency((1-ShadowMapVal)/cp.translucency)*irradiance*albedo.xyz * 0.532;//Wrong but beautiful.
-	}
-	else
-	{
-		trans = 0;
-	}
+	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
+	float3 trans = CalcTranslucency((1-ShadowMapVal)/cp.translucency)*irradiance*albedo.xyz * 0.532 *step(Epsilon,cp.translucency);//Wrong but beautiful.
 	
 	#define SKYDIR float3(0.0,1.0,0.0)
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
 	float3 Hemisphere = lerp(AmbLightColor1.xyz, AmbLightColor0.xyz, SdN*SdN);
 	float3 IBLD,IBLS;
-	IBL(viewNormal,normal,cp.roughness,IBLD,IBLS);
+	IBL(viewNormal,normal,roughness,IBLD,IBLS);
 	
 	float NoV = saturate(dot(normal,viewNormal));
-	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.85, 0, cp.metalness)*(1 - diffAmbientMinus);
-	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, cp.roughness, NoV) * lerp(0.15, 1, cp.metalness)*(1 - specAmbientMinus); //TBD
+	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.85, 0, metalness)*(1 - diffAmbientMinus);
+	float3 ambientSpecular = AmbientColor * IBLS * AmbientBRDF_UE4(spa * albedo.xyz, roughness, NoV) * lerp(0.15, 1, metalness)*(1 - specAmbientMinus); //TBD
 		
 	IBL(viewNormal,normal,cp.varnishRough,IBLD,IBLS);
 	float3 surfaceSpecular = cp.varnishAlpha * (lerp(dot(IBLS,RGB2LUM),IBLS*albedo.xyz,0.68) * AmbientBRDF_UE4(0.32.xxx,cp.varnishRough,NoV) + NL*BRDF(cp.varnishRough,lerp(1.0,albedo.xyz,0.68),normal,lightNormal,viewNormal)*LightAmbient);	
 
-	float RF = lerp(1,lerp(1,min(1,pow(saturate(1.468-NoV),5)+0.23),square(cp.roughness)),cp.reflectance);
+	float RF = lerp(1,lerp(1,min(1,pow(saturate(1.468-NoV),5)+0.23),square(roughness)),cp.reflectance);
 	
 	float3 selfLight = (exp(3.68888f * cp.selfLighting) - 1) * albedo.xyz * 0.25;
 		
@@ -250,17 +241,19 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	float4 sky = tex2D(MRTSamp,Tex);
 
 	float4 albedo = tex2D(AlbedoGbufferSamp,Tex);
-	float2 spaMap = tex2D(SpaGbufferSamp,Tex).xy;
+	float4 spaMap = tex2D(SpaGbufferSamp,Tex);
 	float2 normalMap = tex2D(NormalGbufferSamp,Tex).xy;
 	float spa = spaMap.x;
+	float roughness = spaMap.z;
+	float metalness = spaMap.w;
 	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
-	float3 pos = coord2WorldViewPos(Tex,linearDepth);
+	float3 pos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
 	float3 wpos = mul(pos,(float3x3)ViewInverse);
 
-	PBR_shade(id,Tex,wpos,albedo,spa,normal,odiff,ospec);
+	PBR_shade(id,roughness,metalness,Tex,wpos,albedo,spa,normal,odiff,ospec);
 	
 	odiff.xyz += (1-albedo.a)*sky.xyz;
 	
@@ -281,19 +274,20 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 {
 	float4 albedo = tex2D(Albedo_ALPHA_FRONT_GbufferSamp,Tex);
-	albedo.xyz/=albedo.a;
-	float2 spaMap = tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).xy;
+	float4 spaMap = tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex);
 	float2 normalMap = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy;
 	float spa = spaMap.x;
+	float roughness = spaMap.z;
+	float metalness = spaMap.w;
 	float3 normal = float3(normalMap.xy,spaMap.y);
 	float2 linearDepthXid = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
-	float3 pos = coord2WorldViewPos(Tex,linearDepth);
+	float3 pos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
 	float3 wpos = mul(pos,(float3x3)ViewInverse);
 
 	float4 odiff,ospec;
-	PBR_shade(id,Tex,wpos,albedo,spa,normal,odiff,ospec);
+	PBR_shade(id,roughness,metalness,Tex,wpos,albedo,spa,normal,odiff,ospec);
 
 	ocolor = float4(odiff.xyz+ospec.xyz,albedo.a);
 	return;
@@ -352,7 +346,7 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	lum = float4(log(l + Epsilon),0,0,1);
 	highLight = tex2Dlod(EmitterView, float4(Tex, 0, 0));
 	highLight.xyz = easysrgb2linear(highLight.xyz)*11;
-	highLight.xyz += max(0,ocolor.xyz*1.1-2.3+HDRSTRENGTH)/max(0.95,l*0.032);
+	highLight.xyz += max(0,ocolor.xyz*1.1-11.5+10*HDRSTRENGTH)/max(0.95,l*0.032);
 	highLight.xyz *= 1.2;
 	highLight.a = 1;
 	return;
@@ -600,4 +594,3 @@ string Script =
 	HDRBLOOMPASS
 	HDRBLOOMCOMPPASS
 }
-
