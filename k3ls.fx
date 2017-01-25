@@ -78,8 +78,8 @@ sampler2D specularSamp = sampler_state {
 texture2D sumDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
 	float4 ClearColor = { 0, 0, 0, 0 };
-	string Format = "R32F";
->;
+	string Format = "G32R32F";
+>;	
 sampler sumDepthSamp = sampler_state {
     texture = <sumDepth>;
     MinFilter = POINT;
@@ -146,23 +146,23 @@ POST_OUTPUT POST_VS(float4 Pos : POSITION, float2 Tex : TEXCOORD0)
 
 void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLOR1)
 {
-	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
-	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
-	
+	float4 depthmap = float4(
+	tex2D(DepthGbufferSamp,Tex).xy,
+	tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy
+	);
+
 	float3 N1 = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
 	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
-	
-	bool T = Depth2<=Depth1;
-	if(T)
+
+	if(depthmap.z<=depthmap.x)
 	{
-		Depth = float4(Depth2,0,0,1);
+		Depth = float4(depthmap.z * SCENE_ZFAR,depthmap.w,0,1);
 		N = float4(N2,1);
 	}else
 	{
-		Depth = float4(Depth1,0,0,1);
+		Depth = float4(depthmap.x * SCENE_ZFAR,depthmap.y,0,1);
 		N = float4(N1,1);
 	}
-
 	return;
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
