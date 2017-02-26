@@ -67,7 +67,7 @@ struct VS_OUTPUT {
 VS_OUTPUT Basic_VS(float4 Pos : POSITION, float3 Normal : NORMAL, float2 Tex : TEXCOORD0)
 {
     VS_OUTPUT Out = (VS_OUTPUT)0;
-    Out.oPos = Out.Pos = mul( Pos, ViewProjectMatrix );
+    Out.oPos = Out.Pos = mul( Pos, WorldViewProjMatrix );
 
 	Out.Normal = normalize( Normal);
     Out.Tex = Tex;
@@ -97,7 +97,7 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
-        DiffuseColor = TexColor;
+        DiffuseColor *= TexColor;
     }
 
 	float3 normal,spa;
@@ -109,8 +109,6 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 		float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
 		normal = 2.0f * t - 1;
 		normal.rg *= ((0.5-normalStrength)*30);
-		if(normal.b<0)//If the user wrongly used a spa map as a normal map.Correct it.
-			normal = float3(0,0,1);
 		normal = mul(normalize(normal), tangentFrame);
     }else
 	{
@@ -119,7 +117,8 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 	normal = normalize(normal);
 	
 	float alpha = DiffuseColor.a;
-	clip(alpha>=1-Epsilon?1:-1);
+	if(alpha<1)
+		discard;
 
 	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;
@@ -134,7 +133,7 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	if (useTexture) 
 	{
         float4 TexColor = tex2D(ObjTexSampler, IN.Tex); 
-        DiffuseColor = TexColor;
+        DiffuseColor *= TexColor;
     }
 
 	float3 normal,spa;
@@ -146,8 +145,6 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 		float3x3 tangentFrame = compute_tangent_frame(IN.Normal, IN.Eye, scaledTex);
 		normal = 2.0f * t - 1;
 		normal.rg *= ((0.5-normalStrength)*30);
-		if(normal.b<0)
-			normal = float3(0,0,1);
 		normal = mul(normalize(normal), tangentFrame);
     }else
 	{
@@ -156,7 +153,8 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	normal = normalize(normal);
 
 	float alpha = DiffuseColor.a;
-	clip(alpha>=1-Epsilon || alpha<Epsilon?-1:1);
+	if(alpha>=1-Epsilon || alpha<Epsilon)
+		discard;
 
 	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;

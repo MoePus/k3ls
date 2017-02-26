@@ -77,7 +77,6 @@ sampler2D specularSamp = sampler_state {
 
 texture2D sumDepth: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = "G32R32F";
 >;	
 sampler sumDepthSamp = sampler_state {
@@ -91,7 +90,6 @@ sampler sumDepthSamp = sampler_state {
 
 texture2D sumNormal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = YOR32F;
 >;
 sampler sumNormalSamp = sampler_state {
@@ -167,9 +165,9 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
-	float3 color = tex2D(Samp,Tex).xyz;
-	
-	return float4(color,1);
+
+	float3 c = tex2D(Samp,Tex).xyz;
+	return float4(c,1);
 }
 
 inline float3 CalcTranslucency(float s)
@@ -184,7 +182,7 @@ inline float3 CalcTranslucency(float s)
 		+ float3(0.078f, 0.0f, 0.0f) * exp(dd / 7.41f);
 }
 
-inline void PBR_shade(float id,float roughness,float metalness,float2 Tex,float3 wpos,float4 albedo,float spa,float3 normal,
+inline void PBR_shade(float id,float roughness,float metalness,float2 Tex,float3 view,float3 wpos,float4 albedo,float spa,float3 normal,
 out float4 odiff,
 out float4 ospec
 )
@@ -196,7 +194,6 @@ out float4 ospec
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
 	
-	float3 view = CameraPosition - wpos;
 	float3 viewNormal = normalize(view);
 	float3 lightNormal = normalize(-LightDirection);
 
@@ -208,7 +205,7 @@ out float4 ospec
 	
 	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),metalness);
 
-	float en = lerp(DiffuseBRDF(roughness,normal,lightNormal,viewNormal),DiffuseBSDF(roughness,normal,lightNormal,viewNormal),min(1,cp.SSS*0.76));
+	float en = lerp(DiffuseBRDF(roughness,normal,lightNormal,viewNormal),DiffuseBSDF(roughness,normal,lightNormal,viewNormal),min(1,Epsilon+cp.SSS*0.85));
 	float3 diffuse = NL*albedo.xyz*invPi*en*LightAmbient*(1-metalness);
 	float3 specular = NL*BRDF(roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
 	
@@ -235,7 +232,7 @@ out float4 ospec
 	odiff = float4((albedo.a>Epsilon)*((ShadowMapVal*diffuse + ao*ambientDiffuse)*RF + selfLight + trans),albedo.a);
 	ospec = float4((albedo.a>Epsilon)*(ShadowMapVal*specular+ao*ambientSpecular+surfaceSpecular),cp.SSS);
 }
-						
+
 void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
@@ -250,24 +247,23 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
-	float3 pos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
-	float3 wpos = mul(pos,(float3x3)ViewInverse);
-
-	PBR_shade(id,roughness,metalness,Tex,wpos,albedo,spa,normal,odiff,ospec);
+	float3 vpos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
+	float3 wpos = mul(vpos,(float3x3)ViewInverse);
+	float3 view = CameraPosition - wpos;
 	
-	odiff.xyz += (1-albedo.a)*sky.xyz;
+	PBR_shade(id,roughness,metalness,Tex,view,wpos,albedo,spa,normal,odiff,ospec);
 	
 	float4 alphaLight = tex2D(Blur4WorkBuff1Sampler,Tex);
+	odiff.xyz += (1-max(albedo.a,alphaLight.a))*sky.xyz;
 	
 	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
 	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
 	if(Depth2<=Depth1)
 	{
 		odiff.xyz*=(1-alphaLight.a);
-		ospec.xyz=ospec.xyz*(1-alphaLight.a)+alphaLight.xyz*alphaLight.a;
+		ospec = float4(ospec.xyz*(1-alphaLight.a)+alphaLight.xyz*alphaLight.a,
+		0);
 	}
-
-	float3 outColor = odiff.xyz+ospec.xyz;
 	return;
 }
 
@@ -283,23 +279,23 @@ void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 	float2 linearDepthXid = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
-	float3 pos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
-	float3 wpos = mul(pos,(float3x3)ViewInverse);
-
+	float3 vpos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
+	float3 wpos = mul(vpos,(float3x3)ViewInverse);
+	float3 view = CameraPosition - wpos;
+	
 	float4 odiff,ospec;
-	PBR_shade(id,roughness,metalness,Tex,wpos,albedo,spa,normal,odiff,ospec);
+	PBR_shade(id,roughness,metalness,Tex,view,wpos,albedo,spa,normal,odiff,ospec);
 
 	ocolor = float4(odiff.xyz+ospec.xyz,albedo.a);
 	return;
 }
-
 
 texture AL_EmitterRT: OFFSCREENRENDERTARGET <
     string Description = "EmitterDrawRenderTarget for AutoLuminous.fx";
     float2 ViewPortRatio = {1.0,1.0};
     float4 ClearColor = { 0, 0, 0, 1 };
     float ClearDepth = 1.0;
-    bool AntiAlias = true;
+    bool AntiAlias = false;
     int MipLevels = 0;
     string Format = YOR16F;
     string DefaultEffect = 
@@ -351,6 +347,94 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	highLight.a = 1;
 	return;
 }
+		
+
+// texture2D HalfResSSR: RENDERCOLORTARGET <
+    // float2 ViewPortRatio = {0.9,0.9};
+	// string Format = YOR16F;
+// >;	
+// sampler HalfResSSRSamp = sampler_state {
+    // texture = <HalfResSSR>;
+    // MinFilter = POINT;
+	// MagFilter = POINT;
+	// MipFilter = NONE;
+    // AddressU  = CLAMP;
+	// AddressV  = CLAMP;
+// };	
+// float3 SSRRayTraceHitPosPercent(float2 startSSPos,float3 normal,float linearDepth)
+// {
+	// float3 vpos = coord2WorldViewPos(startSSPos,linearDepth);
+	// float3 wpos = mul(vpos,(float3x3)ViewInverse);
+	// float3 view = CameraPosition - wpos;
+	// float3 viewNormal = -normalize(view);
+	// float3 worldReflect = normalize(reflect(viewNormal, normal));
+
+	// float3 startpos = wpos;
+	// float3 delta = linearDepth*1.5*worldReflect;
+	// float3 endpos = startpos + delta;
+	
+	// const static float2 oneEighthRes = ViewportSize * 0.15;
+	// float3 startsspos = worldPos2coord(startpos);
+	// float3 endsspos = worldPos2coord(endpos);
+	// float3 mstep = (endsspos - startsspos) / oneEighthRes.x;
+	// float3 currentpos = startsspos + mstep * 1;
+	
+	// float interval = linearDepth * 1.7 / oneEighthRes.x;
+	// float hit = 0;
+	// float i = 1.0;
+	// for(;i<oneEighthRes.x*0.5;i+=1.0)
+	// {
+		// float dz = tex2Dlod(sumDepthSamp,float4(currentpos.xy,0,0));
+		// if(dz-currentpos.z<Epsilon)
+		// float dif = abs(dz-currentpos.z);
+		// if(dif<interval)
+		// {
+			// hit = 1;
+			// break;
+		// }
+		// currentpos += mstep;
+	// }
+	
+	// hit *= step(Epsilon,dot(viewNormal,worldReflect));
+	// hit *= min(0.1,dot(currentpos.x,1.0))*10.0;
+	// hit *= min(0.1,dot(currentpos.y,1.0))*10.0;
+	// hit *= min(0.1,dot(currentpos.x,0.0))*10.0;
+	// hit *= min(0.1,dot(currentpos.y,0.0))*10.0;
+	// if(dot(viewNormal,worldReflect)<=0|| min(currentpos.x,currentpos.y)<0 || max(currentpos.x,currentpos.y)>1)
+	// {
+		// hit = 0;
+	// }
+	// return float3(currentpos.xy,hit);
+// }
+
+// float4 SSRRayTracing_PS(float2 Tex: TEXCOORD0) :COLOR
+// {
+	// float3 normal = tex2D(sumNormalSamp,Tex).xyz;
+	// float linearDepth = tex2D(sumDepthSamp,Tex).x;
+	
+	// float3 hit = SSRRayTraceHitPosPercent(Tex - ViewportOffset,normal,linearDepth);
+	
+	// float4 c = tex2D(MRTSamp,hit.xy);
+	// return c*hit.zzzz;
+// }
+
+// #define SSR_RAYTRACING_PASS\
+	// pass SSR_RAYTRACING < string Script= "Draw=Buffer;"; >   \
+	// {	\
+		// AlphaBlendEnable = FALSE;  \
+		// ZFUNC=ALWAYS;  \
+		// ALPHAFUNC=ALWAYS;  \
+		// VertexShader = compile vs_3_0 POST_VS();  \
+		// PixelShader  = compile ps_3_0 SSRRayTracing_PS();  \
+	// }
+	
+// #define SSR_HT \
+		// "RenderColorTarget0=HalfResSSR;" \
+    	// "RenderDepthStencilTarget=mrt_Depth;" \
+		// "ClearSetDepth=ClearDepth;Clear=Depth;" \
+		// "ClearSetColor=ClearColor;Clear=Color;" \
+    	// "Pass=SSR_RAYTRACING;" \
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\bloom.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,12 +552,14 @@ string Script =
 		DO_SMAA
 		#endif
 
-		/*"RenderColorTarget0=;"
-    	"RenderDepthStencilTarget=;"
-		"ClearSetDepth=ClearDepth;Clear=Depth;"
-		"ClearSetColor=ClearColor;Clear=Color;"
-    	"Pass=TEST;"*/
-	
+		/*SSR_HT*/
+		
+		// "RenderColorTarget0=;"
+    	// "RenderDepthStencilTarget=;"
+		// "ClearSetDepth=ClearDepth;Clear=Depth;"
+		// "ClearSetColor=ClearColor;Clear=Color;"
+    	// "Pass=TEST;"
+		
 		ClearGbuffer
 		;
 >{
@@ -487,7 +573,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(EmitterView);
+		PixelShader  = compile ps_3_0 COPY_PS(AlbedoGbufferSamp);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
@@ -593,4 +679,5 @@ string Script =
 	DownSampHL4X1stPass
 	HDRBLOOMPASS
 	HDRBLOOMCOMPPASS
-}
+	// SSR_RAYTRACING_PASS
+}	

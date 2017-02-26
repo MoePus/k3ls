@@ -17,7 +17,7 @@ sampler areaTex  = sampler_state {
     texture = <SMAAareaTex>;
     MINFILTER = POINT;
     MAGFILTER = POINT;
-	MIPFILTER = POINT;
+	MIPFILTER = NONE;
     ADDRESSU  = CLAMP;  
     ADDRESSV  = CLAMP;
 };
@@ -26,7 +26,7 @@ sampler searchTex  = sampler_state {
     texture = <SMAAsearchTex>;
     MINFILTER = POINT;
     MAGFILTER = POINT;
-	MIPFILTER = POINT;
+	MIPFILTER = NONE;
     ADDRESSU  = CLAMP;  
     ADDRESSV  = CLAMP;
 };
@@ -36,17 +36,21 @@ sampler searchTex  = sampler_state {
  */
 void DX9_SMAAEdgeDetectionVS(inout float4 position : POSITION,
                              inout float2 texcoord : TEXCOORD0,
-                             out float4 offset[3] : TEXCOORD1) {
+                             out float4 offset1 : TEXCOORD1,
+                             out float4 offset2 : TEXCOORD2,
+                             out float4 offset3 : TEXCOORD3) {
 	texcoord += ViewportOffset;
-    SMAAEdgeDetectionVS(texcoord, offset);
+    SMAAEdgeDetectionVS(texcoord,offset1,offset2,offset3);
 }
 
 void DX9_SMAABlendingWeightCalculationVS(inout float4 position : POSITION,
                                          inout float2 texcoord : TEXCOORD0,
                                          out float2 pixcoord : TEXCOORD1,
-                                         out float4 offset[3] : TEXCOORD2) {
+										 out float4 offset1 : TEXCOORD2,
+										 out float4 offset2 : TEXCOORD3,
+										 out float4 offset3 : TEXCOORD4) {
 	texcoord += ViewportOffset;
-    SMAABlendingWeightCalculationVS(texcoord, pixcoord, offset);
+    SMAABlendingWeightCalculationVS(texcoord, pixcoord,offset1,offset2,offset3);
 }
 
 void DX9_SMAANeighborhoodBlendingVS(inout float4 position : POSITION,
@@ -59,16 +63,22 @@ void DX9_SMAANeighborhoodBlendingVS(inout float4 position : POSITION,
 
 float4 DX9_SMAALumaEdgeDetectionPS(float4 position : SV_POSITION,
                                    float2 texcoord : TEXCOORD0,
-                                   float4 offset[3] : TEXCOORD1,
+                                   float4 offset1 : TEXCOORD1,
+								   float4 offset2 : TEXCOORD2,
+								   float4 offset3 : TEXCOORD3,
                                    uniform sampler2D colorGammaTex) : COLOR {
+	float4 offset[3] = { offset1, offset2, offset3 };
     return float4(SMAALumaEdgeDetectionPS(texcoord, offset, colorGammaTex),0,1);
 }
 
 
 float4 DX9_SMAADepthEdgeDetectionPS(float4 position : SV_POSITION,
                                     float2 texcoord : TEXCOORD0,
-                                    float4 offset[3] : TEXCOORD1,
+                                    float4 offset1 : TEXCOORD1,
+									float4 offset2 : TEXCOORD2,
+									float4 offset3 : TEXCOORD3,
                                     uniform sampler2D depthTex) : COLOR {
+	float4 offset[3] = { offset1, offset2, offset3 };
     return float4(SMAADepthEdgeDetectionPS(texcoord, offset, depthTex),0,1);
 }
 
@@ -76,11 +86,15 @@ float4 DX9_SMAADepthEdgeDetectionPS(float4 position : SV_POSITION,
 float4 DX9_SMAABlendingWeightCalculationPS(float4 position : SV_POSITION,
                                            float2 texcoord : TEXCOORD0,
                                            float2 pixcoord : TEXCOORD1,
-                                           float4 offset[3] : TEXCOORD2,
+                                           float4 offset1 : TEXCOORD2,
+										   float4 offset2 : TEXCOORD3,
+										   float4 offset3 : TEXCOORD4,
                                            uniform sampler2D edgesTex, 
                                            uniform sampler2D areaTex, 
                                            uniform sampler2D searchTex) : COLOR {
+	float4 offset[3] = { offset1, offset2, offset3 };
     float4 res = SMAABlendingWeightCalculationPS(texcoord, pixcoord, offset, edgesTex, areaTex, searchTex, SMAA_WEIGHT_SUBSAMPLE);
+	// res.b = 1.0;
     return res;
 }
 
@@ -152,12 +166,10 @@ float4 DX9_SMAANeighborhoodBlendingPS(float4 position : SV_POSITION,
 		";" \
 		 \
 		"RenderColorTarget0=Blur4WorkBuff1;" \
-    	"RenderDepthStencilTarget=mrt_Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \
     	"Pass=BlendWeightCalculation;" \
 		 \
 		"RenderColorTarget0=;" \
     	"RenderDepthStencilTarget=;" \
-		"ClearSetDepth=ClearDepth;Clear=Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \
     	"Pass=NeighborhoodBlending;"

@@ -1,11 +1,10 @@
-#define SHADOW_QUALITY				4
-#define	SSAORayCount				32
+#define SHADOW_QUALITY				3
+#define	SSAORayCount				24
 #define SSDO_COLOR_BLEEDING			0
 #define BLUR_COUNT					6
 #define VOLUMETRIC_FOG_SAMPLE		0
 #define AA_QUALITY					4
 #define SMAA_EDGE_DETECT_MODE		0
-#define SMAA_WEIGHT_SUBSAMPLE		2
 #define ENABLE_SSS					1
 #define FILL_2_FLOAT_TO_4			1
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +41,7 @@
 #endif
 
 #ifdef USE_SMAA
+#define SMAA_WEIGHT_SUBSAMPLE 0
 #define SMAA_RT_METRICS float4(ViewportOffset2, ViewportSize)
 #define SMAA_HLSL_3
 #endif

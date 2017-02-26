@@ -40,12 +40,12 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
 	float3 VPos = coord2WorldViewPos(Tex - ViewportOffset,depth);
 	float4 WPos = mul(float4(VPos,1),ViewInverse);
 
-	float3 view = WPos - CameraPosition;
+	float3 view = CameraPosition - WPos;
 	float3 lightNormal = normalize(-LightDirection);
 	float3 LightPosition = lightNormal * LightDistance;
 	
 	float viewLength = length(view) + Epsilon;
-	float3 viewNormal = view / viewLength;
+	float3 viewNormal = -view / viewLength;
 	float Depthstep = min(700,viewLength) / VOLUMETRIC_FOG_SAMPLE;
 	float3 step = Depthstep * viewNormal;
 	
@@ -57,7 +57,7 @@ float4 FOG_PS(float2 Tex: TEXCOORD0) : COLOR
     {
         float3 L = ray - LightPosition;
         float atten = 5000000/dot(L,L);
-        atten *= LV2phaseFactor(dot(-view, normalize(L)));
+        atten *= LV2phaseFactor(dot(view, normalize(L)));
 
         atten *= ShadowFactor(ray);
 		atten *= FOG_A;

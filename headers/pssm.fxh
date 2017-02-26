@@ -7,6 +7,7 @@ texture PSSMDepth : OFFSCREENRENDERTARGET <
 	int Width = SHADOW_MAP_SIZE;
     int Height = SHADOW_MAP_SIZE;
     string Format = "R32F";
+	bool AntiAlias = false;
     float4 ClearColor = { 1, 0, 0, 0 };
     float ClearDepth = 1.0;
     int MipLevels = 1;

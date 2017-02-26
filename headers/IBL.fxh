@@ -74,6 +74,11 @@ float HorizonOcclusion(float3 N, float3 R)
     return factor * factor;
 }
 
+float3 DecodeHDR(float4 hdr)
+{
+	return hdr.rgb;
+}
+
 void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out float3 specular)
 {
     float3 worldReflect = reflect(-view, normal);
@@ -83,11 +88,11 @@ void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out flo
     float3 R = mul(rotate, worldReflect);
     float3 N = mul(rotate, normal);
 
-    float4 prefilteredDiffuse = tex2D(IBLDiffuseSampler, computeSphereCoord(N));
-    float4 prefilteredSpeculr = tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer));
+    float3 prefilteredDiffuse = DecodeHDR(tex2D(IBLDiffuseSampler, computeSphereCoord(N)));
+    float3 prefilteredSpeculr = DecodeHDR(tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer)));
 
-    prefilteredDiffuse.rgb = srgb2linear(prefilteredDiffuse.rgb);
-    prefilteredSpeculr.rgb = srgb2linear(prefilteredSpeculr.rgb);
+    prefilteredDiffuse = srgb2linear(prefilteredDiffuse);
+    prefilteredSpeculr = srgb2linear(prefilteredSpeculr);
 
     prefilteredSpeculr *= HorizonOcclusion(normal, view);
 

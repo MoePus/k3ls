@@ -1,10 +1,8 @@
 float3 ColorTemperatureToRGB(float temperatureInKelvins)
 {
+	//http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
 	if (temperatureInKelvins<=1000.0+Epsilon)
 		return float3(1,1,1);
-		
-	//http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
-	
 	float3 retColor;
 	
     temperatureInKelvins = clamp(temperatureInKelvins, 1000.0, 40000.0) / 100.0;
@@ -115,13 +113,11 @@ texture2D lum4x4Depth : RENDERDEPTHSTENCILTARGET <
 texture2D adapted_lum: RENDERCOLORTARGET <
     int Width = 1;
 	int Height = 1;
-	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = "D3DFMT_R32F";
 >;
 texture2D baked_adapted_lum: RENDERCOLORTARGET <
     int Width = 1;
 	int Height = 1;
-	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = "D3DFMT_R32F";
 >;
 texture2D adapted_lum_Depth : RENDERDEPTHSTENCILTARGET <

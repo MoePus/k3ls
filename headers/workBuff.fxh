@@ -34,7 +34,6 @@ sampler Blur4WorkBuff0Sampler = sampler_state {
 
 texture2D Blur4WorkBuff1: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	float4 ClearColor = { 0, 0, 0, 0 };
 	string Format = YOR16F;
 >;
 sampler Blur4WorkBuff1Sampler = sampler_state {

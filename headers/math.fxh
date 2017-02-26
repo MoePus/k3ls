@@ -5,6 +5,14 @@ float3 coord2WorldViewPos(float2 texcoord, float depth)
 	return VPos;
 }
 
+float3 worldPos2coord(float3 worldpos)
+{
+	float4 proj = mul(float4(worldpos,0),ViewProjectMatrix);
+	proj.xy /= proj.w;
+	proj.xy = 0.5 + float2(0.5,-0.5)*proj.xy;
+	return proj.xyw;
+}
+
 float3 easysrgb2linear(float3 rgb)
 {
     return pow(rgb, 2.2f);
