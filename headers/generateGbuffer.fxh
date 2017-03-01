@@ -153,7 +153,7 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	normal = normalize(normal);
 
 	float alpha = DiffuseColor.a;
-	if(alpha>=1-Epsilon || alpha<Epsilon)
+	if(alpha>=1-Epsilon || alpha<0.008)
 		discard;
 
 	float spaShineness = 1-specularStrength;

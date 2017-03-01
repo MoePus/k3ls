@@ -91,9 +91,6 @@ void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out flo
     float3 prefilteredDiffuse = DecodeHDR(tex2D(IBLDiffuseSampler, computeSphereCoord(N)));
     float3 prefilteredSpeculr = DecodeHDR(tex2Dlod(IBLSpecularSampler, float4(computeSphereCoord(R), 0, mipLayer)));
 
-    prefilteredDiffuse = srgb2linear(prefilteredDiffuse);
-    prefilteredSpeculr = srgb2linear(prefilteredSpeculr);
-
     prefilteredSpeculr *= HorizonOcclusion(normal, view);
 
     diffuse = prefilteredDiffuse.rgb;
