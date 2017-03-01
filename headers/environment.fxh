@@ -1,8 +1,8 @@
 #define SHADOW_QUALITY				3
 #define	SSAORayCount				24
-#define SSDO_COLOR_BLEEDING			12
-#define BLUR_COUNT					7
-#define VOLUMETRIC_FOG_SAMPLE		100
+#define SSDO_COLOR_BLEEDING			0
+#define BLUR_COUNT					6
+#define VOLUMETRIC_FOG_SAMPLE		0
 #define AA_QUALITY					4
 #define SMAA_EDGE_DETECT_MODE		0
 #define ENABLE_SSS					1
@@ -240,11 +240,6 @@ float CalcEdgeFalloff(float2 texCoord)
 float4 CalcCascadePPos(float2 uv, float2 offset, float index)
 {
     return float4(uv + ((0.5 + offset) * 0.5 + (0.5 / SHADOW_MAP_SIZE)), index, CalcEdgeFalloff(uv));
-}
-
-float CalcLight(float casterDepth, float receiverDepth, float rate)
-{
-    return 1.0 - saturate((receiverDepth - casterDepth) * rate);
 }
 
 static float4x4 matLightView = GetLightViewMatrix(normalize(LightDirection));

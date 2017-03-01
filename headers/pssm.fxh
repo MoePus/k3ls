@@ -33,11 +33,6 @@ sampler ScreenShadowMapSampler = sampler_state {
     MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = NONE;
     AddressU  = CLAMP; AddressV = CLAMP;
 };
-sampler2D ScreenShadowMapProcessedSamp = sampler_state {
-    texture = <ScreenShadowMap>;
-    MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = NONE;
-    AddressU  = CLAMP; AddressV = CLAMP;
-};
 
 float transmission(float c,float r)
 {
@@ -81,34 +76,22 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	receiverDepth -= depthBias;
 
 	float s = 1.5 / SHADOW_MAP_SIZE;	
-	float fCasterDepth[9] = {
-	tex2D(PSSMsamp, texCoord).x,
-	tex2D(PSSMsamp, texCoord + float2( s, s)).x,
-	tex2D(PSSMsamp, texCoord + float2(-s, s)).x,
-	tex2D(PSSMsamp, texCoord + float2( s,-s)).x,
-	tex2D(PSSMsamp, texCoord + float2(-s,-s)).x,
-	tex2D(PSSMsamp, texCoord + float2( s, 0)).x,
-	tex2D(PSSMsamp, texCoord + float2(-s, 0)).x,
-	tex2D(PSSMsamp, texCoord + float2( 0, s)).x,
-	tex2D(PSSMsamp, texCoord + float2( 0,-s)).x
+	float3x3 fCasterDepth = {
+	tex2D(PSSMsamp, texCoord).x,tex2D(PSSMsamp, texCoord + float2( s, s)).x,tex2D(PSSMsamp, texCoord + float2(-s, s)).x,
+	tex2D(PSSMsamp, texCoord + float2( s,-s)).x,tex2D(PSSMsamp, texCoord + float2(-s,-s)).x,tex2D(PSSMsamp, texCoord + float2( s, 0)).x,
+	tex2D(PSSMsamp, texCoord + float2(-s, 0)).x,tex2D(PSSMsamp, texCoord + float2( 0, s)).x,tex2D(PSSMsamp, texCoord + float2( 0,-s)).x
 	};
-	
 	
 	float sdrate = 30000.0 / 4.0 - 0.05;
 	sdrate = (1+3*shadowPlus)*sdrate;
-	
-	float shadow = 0;
-	shadow += CalcLight(fCasterDepth[0], receiverDepth, sdrate);
-	shadow += CalcLight(fCasterDepth[1], receiverDepth, sdrate) * 0.5;
-	shadow += CalcLight(fCasterDepth[2], receiverDepth, sdrate) * 0.5;
-	shadow += CalcLight(fCasterDepth[3], receiverDepth, sdrate) * 0.5;
-	shadow += CalcLight(fCasterDepth[4], receiverDepth, sdrate) * 0.5;
-	shadow += CalcLight(fCasterDepth[5], receiverDepth, sdrate) * 0.95;
-	shadow += CalcLight(fCasterDepth[6], receiverDepth, sdrate) * 0.95;
-	shadow += CalcLight(fCasterDepth[7], receiverDepth, sdrate) * 0.95;
-	shadow += CalcLight(fCasterDepth[8], receiverDepth, sdrate) * 0.95;
+	fCasterDepth = 1 - saturate((fCasterDepth-receiverDepth)*sdrate);
+	fCasterDepth *= float3x3(
+	1.0,0.5,0.5,
+	0.5,0.5,0.95,
+	0.95,0.95,0.95)/6.8;
 
-	shadow /= 6.8;
+	float3 shadow3 = fCasterDepth[0] + fCasterDepth[1] + fCasterDepth[2];
+	float shadow = shadow3.x + shadow3.y + shadow3.z;
 	
 	shadow = shadow*max(0,alpha - RecieverAlphaThreshold)/(1 - RecieverAlphaThreshold);
 	

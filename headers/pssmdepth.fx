@@ -1,12 +1,6 @@
 #include "..\\headers\\environment.fxh"
 
 uniform float4   MaterialDiffuse   : DIFFUSE  < string Object = "Geometry"; >;
-uniform float3   MaterialAmbient   : AMBIENT  < string Object = "Geometry"; >;
-uniform float3   MaterialEmmisive  : EMISSIVE < string Object = "Geometry"; >;
-uniform float3   MaterialSpecular  : SPECULAR < string Object = "Geometry"; >;
-uniform float    SpecularPower     : SPECULARPOWER < string Object = "Geometry"; >;
-uniform float4   MaterialToon      : TOONCOLOR;
-static	float4	DiffuseColor  = float4(MaterialDiffuse.rgb, saturate(MaterialDiffuse.a+0.01f));
 
 sampler MMDSamp0 : register(s0);
 sampler MMDSamp1 : register(s1);

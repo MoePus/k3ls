@@ -190,7 +190,7 @@ out float4 ospec
 	albedo.xyz = srgb2linear(albedo.xyz);
 	albedo.xyz = max(albedo.xyz,0.002.xxx);//note: there is no pure black in the world.
 	
-	float2 shadowMap = tex2D(ScreenShadowMapProcessedSamp, Tex).xy;
+	float2 shadowMap = tex2D(ScreenShadowMapSampler, Tex).xy;
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
 	
