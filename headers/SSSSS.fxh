@@ -24,7 +24,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
 	step_mod = (1 + BlurIndex)*SSS_strength; \
 	step *= 1000*ViewportOffset2; \
 	float4 colorM = tex2D(SAMP_name,Tex); \
-    float depthM = tex2D(DepthGbufferSamp,Tex).r * SCENE_ZFAR; \
+    float depthM = tex2D(sumDepthSamp,Tex).r * SCENE_ZFAR; \
     float4 colorBlurred = colorM; \
     colorBlurred.rgb *= 0.382; \
 	float correction = 100*(1-sss_correction*0.1); \
@@ -33,7 +33,7 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
     for (int i = 0; i < 6; i++) { \
         float2 offset = Tex + o[i] * finalStep / ViewportSize; \
         float3 color = tex2D(SAMP_name,offset).rgb; \
-        float depth = tex2D(DepthGbufferSamp,offset).r * SCENE_ZFAR; \
+        float depth = tex2D(sumDepthSamp,offset).r * SCENE_ZFAR; \
         float s = min(0.0125 * correction * abs(depthM - depth), 1.0); \
         color = lerp(color, colorM.rgb, s); \
         colorBlurred.rgb += w[i] * color; } \

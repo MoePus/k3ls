@@ -149,8 +149,8 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 	tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy
 	);
 
-	float3 N1 = float3(tex2D(NormalGbufferSamp,Tex).xy,tex2D(SpaGbufferSamp,Tex).y);
-	float3 N2 = float3(tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy,tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex).y);
+	float3 N1 = tex2D(NormalGbufferSamp,Tex).xyz;
+	float3 N2 = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xyz;
 
 	if(depthmap.z<=depthmap.x)
 	{
@@ -166,8 +166,8 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
 
-	float3 c = tex2D(Samp,Tex).xyz;
-	return float4(c,1);
+	float4 c = tex2D(Samp,Tex);
+	return float4(c.rgb,1);
 }
 
 inline float3 CalcTranslucency(float s)
@@ -239,11 +239,10 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 
 	float4 albedo = tex2D(AlbedoGbufferSamp,Tex);
 	float4 spaMap = tex2D(SpaGbufferSamp,Tex);
-	float2 normalMap = tex2D(NormalGbufferSamp,Tex).xy;
+	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
 	float spa = spaMap.x;
-	float roughness = spaMap.z;
-	float metalness = spaMap.w;
-	float3 normal = float3(normalMap.xy,spaMap.y);
+	float roughness = spaMap.y;
+	float metalness = spaMap.z;
 	float2 linearDepthXid = tex2D(DepthGbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;
@@ -254,7 +253,7 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 	PBR_shade(id,roughness,metalness,Tex,view,wpos,albedo,spa,normal,odiff,ospec);
 	
 	float4 alphaLight = tex2D(Blur4WorkBuff1Sampler,Tex);
-	odiff.xyz += (1-max(albedo.a,alphaLight.a))*sky.xyz;
+	odiff.xyz += (1-albedo.a)*sky.xyz;
 	
 	float Depth1 = tex2D(DepthGbufferSamp,Tex).x * SCENE_ZFAR;
 	float Depth2 = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).x * SCENE_ZFAR;
@@ -270,12 +269,12 @@ void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4
 void PBR_ALPHAFRONT_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 {
 	float4 albedo = tex2D(Albedo_ALPHA_FRONT_GbufferSamp,Tex);
+
 	float4 spaMap = tex2D(Spa_ALPHA_FRONT_GbufferSamp,Tex);
-	float2 normalMap = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xy;
+	float3 normal = tex2D(Normal_ALPHA_FRONT_GbufferSamp,Tex).xyz;
 	float spa = spaMap.x;
-	float roughness = spaMap.z;
-	float metalness = spaMap.w;
-	float3 normal = float3(normalMap.xy,spaMap.y);
+	float roughness = spaMap.y;
+	float metalness = spaMap.z;
 	float2 linearDepthXid = tex2D(Depth_ALPHA_FRONT_GbufferSamp,Tex).xy;
 	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
 	float id = linearDepthXid.y;

@@ -27,7 +27,7 @@ shared texture2D GBuffer_spa: RENDERCOLORTARGET <
 
 shared texture2D GBuffer_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	string Format = NIR32F;
+	string Format = YOR32F;
 >;
 //////////////////////NO ALPHA/////////////////////////
 
@@ -49,7 +49,7 @@ shared texture2D GBuffer_ALPHA_FRONT_spa: RENDERCOLORTARGET <
 
 shared texture2D GBuffer_ALPHA_FRONT_normal: RENDERCOLORTARGET <
     float2 ViewPortRatio = {1.0,1.0};
-	string Format = NIR32F;
+	string Format = YOR32F;
 >;
 /////////////////////ALPHA FRAG////////////////////////
 

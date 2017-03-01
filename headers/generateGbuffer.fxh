@@ -122,9 +122,9 @@ void Basic_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bool useN
 
 	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;
-	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id,0,0);
-	gbuffer.spa = float4(spaShineness,normal.z,roughness,metalness);
-	gbuffer.Normal = float4(normal.xy,0,0);
+	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id,0,1);
+	gbuffer.spa = float4(spaShineness,roughness,metalness,1);
+	gbuffer.Normal = float4(normal.xyz,1);
 	return;
 }
 
@@ -153,14 +153,14 @@ void ALPHA_OBJECT_PS(VS_OUTPUT IN,uniform const bool useTexture,uniform const bo
 	normal = normalize(normal);
 
 	float alpha = DiffuseColor.a;
-	if(alpha>=1-Epsilon || alpha<0.008)
+	if(alpha>=1-Epsilon || alpha < 1e-3)
 		discard;
 
 	float spaShineness = 1-specularStrength;
 	gbuffer.albedo = DiffuseColor;
 	gbuffer.depth = float4(IN.oPos.w/SCENE_ZFAR,_id,0,1);
-	gbuffer.spa = float4(spaShineness,normal.z,roughness,metalness);
-	gbuffer.Normal = float4(normal.xy,0,1);
+	gbuffer.spa = float4(spaShineness,roughness,metalness,1);
+	gbuffer.Normal = float4(normal.xyz,1);
 	return;
 }
 
@@ -188,7 +188,7 @@ technique tecname < string MMDPass = #_mmdpass; bool UseTexture = _useTexture; b
     PixelShader  = compile ps_3_0 Basic_PS(_useTexture,_usespheremap); } \
 	\
 	pass Draw_ALPHA_FRONT_Object {  \
-	AlphaBlendEnable = false; \
+	AlphaBlendEnable = true; \
 	VertexShader = compile vs_3_0 Basic_VS(); \
     PixelShader  = compile ps_3_0 ALPHA_OBJECT_PS(_useTexture,_usespheremap); }}
 
