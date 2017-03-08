@@ -1,8 +1,8 @@
-#define SHADOW_QUALITY				3
+#define SHADOW_QUALITY				4
 #define	SSAORayCount				24
-#define SSDO_COLOR_BLEEDING			0
-#define BLUR_COUNT					6
-#define VOLUMETRIC_FOG_SAMPLE		0
+#define SSDO_COLOR_BLEEDING			2
+#define BLUR_COUNT					7
+#define VOLUMETRIC_FOG_SAMPLE		90
 #define AA_QUALITY					4
 #define SMAA_EDGE_DETECT_MODE		0
 #define ENABLE_SSS					1

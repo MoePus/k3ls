@@ -84,7 +84,7 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	
 	float sdrate = 30000.0 / 4.0 - 0.05;
 	sdrate = (1+3*shadowPlus)*sdrate;
-	fCasterDepth = 1 - saturate((fCasterDepth-receiverDepth)*sdrate);
+	fCasterDepth = 1 - saturate((receiverDepth-fCasterDepth)*sdrate);
 	fCasterDepth *= float3x3(
 	1.0,0.5,0.5,
 	0.5,0.5,0.95,

@@ -69,7 +69,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		float MINofBouns = min(min(bouns.x,bouns.y),bouns.z)*2;
 		if(any(bouns - MINofBouns.xxx))
 		{
-			bouns*=(1 + easysrgb2linear(tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz));
+			bouns*=(1 + tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz);
 			col += min(0.3,ao) * bouns * invPi * LightAmbient;
 		}
 			
