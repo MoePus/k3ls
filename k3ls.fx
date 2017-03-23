@@ -124,7 +124,7 @@ struct POST_OUTPUT {
 #if VOLUMETRIC_FOG_SAMPLE > 0
 #include "headers\\fog.fxh"
 #endif	
-#include "headers\\ACESToneMapping.fxh"
+#include "headers\\toneMapping.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef USE_SMAA
 #include "SMAA\\SMAA.h"
@@ -347,92 +347,6 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	return;
 }
 		
-
-// texture2D HalfResSSR: RENDERCOLORTARGET <
-    // float2 ViewPortRatio = {0.9,0.9};
-	// string Format = YOR16F;
-// >;	
-// sampler HalfResSSRSamp = sampler_state {
-    // texture = <HalfResSSR>;
-    // MinFilter = POINT;
-	// MagFilter = POINT;
-	// MipFilter = NONE;
-    // AddressU  = CLAMP;
-	// AddressV  = CLAMP;
-// };	
-// float3 SSRRayTraceHitPosPercent(float2 startSSPos,float3 normal,float linearDepth)
-// {
-	// float3 vpos = coord2WorldViewPos(startSSPos,linearDepth);
-	// float3 wpos = mul(vpos,(float3x3)ViewInverse);
-	// float3 view = CameraPosition - wpos;
-	// float3 viewNormal = -normalize(view);
-	// float3 worldReflect = normalize(reflect(viewNormal, normal));
-
-	// float3 startpos = wpos;
-	// float3 delta = linearDepth*1.5*worldReflect;
-	// float3 endpos = startpos + delta;
-	
-	// const static float2 oneEighthRes = ViewportSize * 0.15;
-	// float3 startsspos = worldPos2coord(startpos);
-	// float3 endsspos = worldPos2coord(endpos);
-	// float3 mstep = (endsspos - startsspos) / oneEighthRes.x;
-	// float3 currentpos = startsspos + mstep * 1;
-	
-	// float interval = linearDepth * 1.7 / oneEighthRes.x;
-	// float hit = 0;
-	// float i = 1.0;
-	// for(;i<oneEighthRes.x*0.5;i+=1.0)
-	// {
-		// float dz = tex2Dlod(sumDepthSamp,float4(currentpos.xy,0,0));
-		// if(dz-currentpos.z<Epsilon)
-		// float dif = abs(dz-currentpos.z);
-		// if(dif<interval)
-		// {
-			// hit = 1;
-			// break;
-		// }
-		// currentpos += mstep;
-	// }
-	
-	// hit *= step(Epsilon,dot(viewNormal,worldReflect));
-	// hit *= min(0.1,dot(currentpos.x,1.0))*10.0;
-	// hit *= min(0.1,dot(currentpos.y,1.0))*10.0;
-	// hit *= min(0.1,dot(currentpos.x,0.0))*10.0;
-	// hit *= min(0.1,dot(currentpos.y,0.0))*10.0;
-	// if(dot(viewNormal,worldReflect)<=0|| min(currentpos.x,currentpos.y)<0 || max(currentpos.x,currentpos.y)>1)
-	// {
-		// hit = 0;
-	// }
-	// return float3(currentpos.xy,hit);
-// }
-
-// float4 SSRRayTracing_PS(float2 Tex: TEXCOORD0) :COLOR
-// {
-	// float3 normal = tex2D(sumNormalSamp,Tex).xyz;
-	// float linearDepth = tex2D(sumDepthSamp,Tex).x;
-	
-	// float3 hit = SSRRayTraceHitPosPercent(Tex - ViewportOffset,normal,linearDepth);
-	
-	// float4 c = tex2D(MRTSamp,hit.xy);
-	// return c*hit.zzzz;
-// }
-
-// #define SSR_RAYTRACING_PASS\
-	// pass SSR_RAYTRACING < string Script= "Draw=Buffer;"; >   \
-	// {	\
-		// AlphaBlendEnable = FALSE;  \
-		// ZFUNC=ALWAYS;  \
-		// ALPHAFUNC=ALWAYS;  \
-		// VertexShader = compile vs_3_0 POST_VS();  \
-		// PixelShader  = compile ps_3_0 SSRRayTracing_PS();  \
-	// }
-	
-// #define SSR_HT \
-		// "RenderColorTarget0=HalfResSSR;" \
-    	// "RenderDepthStencilTarget=mrt_Depth;" \
-		// "ClearSetDepth=ClearDepth;Clear=Depth;" \
-		// "ClearSetColor=ClearColor;Clear=Color;" \
-    	// "Pass=SSR_RAYTRACING;" \
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\bloom.fxh"

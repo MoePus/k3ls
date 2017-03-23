@@ -1,2 +1,4 @@
 *.pmm
 *.emm
+headers/shadowDepth.fx
+ssr.txt

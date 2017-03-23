@@ -1,7 +1,7 @@
 float3 coord2WorldViewPos(float2 texcoord, float depth)
 {
 	float2 SPos = float2(2.0f*texcoord.x-1.0f, -2.0f*texcoord.y+1.0f);
-	float3 VPos =  float3(SPos.x * invCotheta * Aspect, SPos.y * invCotheta, 1.0f) * depth;
+	float3 VPos = float3(SPos.x * invCotheta * Aspect, SPos.y * invCotheta, 1.0f) * depth;
 	return VPos;
 }
 

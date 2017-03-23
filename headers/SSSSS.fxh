@@ -22,12 +22,12 @@ float4 PS_name(float2 Tex: TEXCOORD0) : COLOR { \
 	float SSS_strength = tex2D(Blur2WorkBuff0Sampler,Tex).x; \
 	float2 step = float2(0.0,0.0); \
 	step_mod = (1 + BlurIndex)*SSS_strength; \
-	step *= 1000*ViewportOffset2; \
+	step *= 5000; \
 	float4 colorM = tex2D(SAMP_name,Tex); \
     float depthM = tex2D(sumDepthSamp,Tex).r * SCENE_ZFAR; \
     float4 colorBlurred = colorM; \
     colorBlurred.rgb *= 0.382; \
-	float correction = 100*(1-sss_correction*0.1); \
+	float correction = sss_correction*0.6667; \
     float2 finalStep = colorM.a * step / depthM; \
 	[unroll] \
     for (int i = 0; i < 6; i++) { \

@@ -19,13 +19,13 @@ sampler AOWorkMapSampler = sampler_state {
 #define InvDepthLength6 1e-06
 static float2 SSAORadius = 0.14 / SSAORayCount * ViewportAspect;
 
-inline float GetOccRate(float2 Tex, float3 WPos, float3 N)
+inline float GetOccRate(float2 Tex, float3 VPos, float3 N)
 {
 	float Depth = tex2D(sumDepthSamp,Tex).x;
-	float3 RayPos = mul(coord2WorldViewPos(Tex,Depth),(float3x3)ViewInverse);
+	float3 RayPos = coord2WorldViewPos(Tex,Depth);
 	const float SSAO_BIAS = 0.01;
 
-	float3 v = RayPos - WPos;
+	float3 v = RayPos - VPos;
 	float distance2 = dot(v, v);
 	float dotVN = max(dot(v, N) - SSAO_BIAS, 0.0f);
 	float f = max(DepthLength * DepthLength - distance2, 0.0f);
@@ -41,7 +41,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 	
 	float3 N = tex2D(sumNormalSamp,Tex).xyz;
 	float2 cTex = Tex - ViewportOffset;
-	float3 WPos = mul(coord2WorldViewPos(cTex,Depth),(float3x3)ViewInverse);
+	float3 VPos = coord2WorldViewPos(cTex,Depth);
 
 	float radMul = 1.0 / SSAORayCount * (3.14 * 2.0 * 7.0);
 	float radAdd = hash12(Tex*Depth*ftime) * (PI * 2.0);
@@ -62,7 +62,7 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		sincos(totalCRad + radAdd, sc.x, sc.y);
 		float2 uv = sc * totalCAORad + cTex;
 
-		float ao = GetOccRate(uv, WPos, N);
+		float ao = GetOccRate(uv, VPos, N);
 		sum += ao;
 		#if SSDO_COLOR_BLEEDING > 0
 		float3 bouns = easysrgb2linear(tex2D(AlbedoGbufferSamp,uv).xyz);
@@ -70,15 +70,16 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		if(any(bouns - MINofBouns.xxx))
 		{
 			bouns*=(1 + tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz);
-			col += min(0.3,ao) * bouns * invPi * LightAmbient;
+			col += min(0.3,ao) * bouns;
 		}
-			
 		#endif
 		
 		totalCRad += radMul;
 		totalCAORad += qAoRadius;
 	}
-
+	#if SSDO_COLOR_BLEEDING > 0
+	col *= invPi * LightAmbient;
+	#endif
 	// 元のSAOのソースでは、ddx/ddyでクアッド単位の
 	// 補正を行っていた。
 

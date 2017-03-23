@@ -210,13 +210,13 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0)).r;
 
-	ocolor *= temperatureColor;
+	ocolor *= lerp(temperatureColor,1,saturate((ocolor - 0.84)*0.45));
 	float lum = dot(ocolor, RGB2LUM);
 	float3 color = lerp(lum * BLUE_SHIFT, ocolor, saturate(16.0f * lum));
 	
-	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum*0.8)));
+	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
-	color = AF(color * adapted_lum_dest);
+	color = AF(color * adapted_lum_dest)/AF(0.8);
 	return float4(color,1);
 }
 
