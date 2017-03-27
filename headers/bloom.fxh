@@ -92,8 +92,8 @@ sampler BloomTexture1st2YSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture1st : RENDERCOLORTARGET <
@@ -105,8 +105,8 @@ sampler BloomTexture1stSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture2nd2Y : RENDERCOLORTARGET <
@@ -118,8 +118,8 @@ sampler BloomTexture2nd2YSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture2nd : RENDERCOLORTARGET <
@@ -131,8 +131,8 @@ sampler BloomTexture2ndSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture3rd2Y : RENDERCOLORTARGET <
@@ -144,8 +144,8 @@ sampler BloomTexture3rd2YSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture3rd : RENDERCOLORTARGET <
@@ -157,8 +157,8 @@ sampler BloomTexture3rdSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 texture BloomTexture4th : RENDERCOLORTARGET <
@@ -170,26 +170,12 @@ sampler BloomTexture4thSamp = sampler_state {
     MinFilter = LINEAR;
     MagFilter = LINEAR;
     MipFilter = POINT;
-    AddressU  = CLAMP;
-    AddressV = CLAMP;
+    AddressU  = Border;
+    AddressV = Border;
 };
 
 float4 HDRBloomGaussianPS(float2 Tex: TEXCOORD0, uniform sampler samp, uniform float2 offset) : COLOR0
 {
-	/*float3 sum = 0;
-	float n = 0;
-	float3 ocolor = 0;
-	[unroll] //ループ展開
-	#define AL_SAMP_NUM 14
-	offset = offset/AL_SAMP_NUM*4;
-    for(int i = -AL_SAMP_NUM; i <= AL_SAMP_NUM; i++){
-        float e = exp(-pow((float)i / (AL_SAMP_NUM / 2.0), 2) / 2); //正規分布
-        float2 stex = Tex + (offset * (float)i);
-        float3 scolor = tex2D(samp, stex).rgb;
-        sum += scolor * e;
-        n += e;
-    }
-	ocolor = sum/n;*/
 	//https://github.com/CRYTEK-CRYENGINE/CRYENGINE/blob/main/Engine/Shaders/HWScripts/CryFX/HDRPostProcess.cfx
 	const float weights[15] = { 153, 816, 3060, 8568, 18564, 31824, 43758, 48620, 43758, 31824, 18564, 8568, 3060, 816, 153 };
 	const float weightSum = 262106.0;
@@ -373,7 +359,7 @@ void HDRBLOOMCOMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 }
 
 #define HDRBLOOMCOMP\
-		"RenderColorTarget0=Blur4WorkBuff0;" \
+		"RenderColorTarget0=Blur4WorkBuff2;" \
     	"RenderDepthStencilTarget=mrt_Depth;" \
 		"ClearSetDepth=ClearDepth;Clear=Depth;" \
 		"ClearSetColor=ClearColor;Clear=Color;" \
@@ -387,4 +373,230 @@ void HDRBLOOMCOMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0)
 		ALPHAFUNC=ALWAYS;  \
 		VertexShader = compile vs_3_0 POST_VS();  \
 		PixelShader  = compile ps_3_0 HDRBLOOMCOMP_PS();  \
+	}
+	
+	
+#if GLARE_SAMPLE > 0
+float3 colorOffset(float3 c)
+{
+	c.rgb = rgb2hsv(c.rgb);
+	c.r = c.r + 0.5;
+	c.rgb = hsv2rgb(c.rgb);
+	
+	return c;
+}
+
+float4 PS_AL_DirectionalBlur1( float2 Tex: TEXCOORD0 , uniform sampler2D Samp) : COLOR 
+{   
+    float n = Epsilon;
+    float2 stex1, stex2, stex3;
+    float4 Color = 0;
+    float4 sum1 = 0, sum2 = 0, sum3 = 0;
+    
+    float2 dir = float2(1.0/1000.0,0);
+    
+    [unroll]
+    for(int i = -GLARE_SAMPLE; i <= GLARE_SAMPLE; i++){
+        float e = exp(-pow((float)i / (GLARE_SAMPLE / 2.0), 2) / 2); 
+
+        stex1 = Tex + dir * ((float)i * 1.0);
+        stex2 = Tex + dir * ((float)i * 1.8);
+        stex3 = Tex + dir * ((float)i * 3.9);
+        
+		float3 color1,color2,color3;
+		color1 = max(0,tex2Dlod( Samp, float4(stex1, 0, 1) ));
+		color2 = max(0,tex2Dlod( Samp, float4(stex2, 0, 1) ));
+		color3 = max(0,tex2Dlod( Samp, float4(stex3, 0, 1) ));
+		
+		sum1.rgb += color1 * e;
+		sum2.rgb += color2 * e;
+		sum3.rgb += color3 * e;
+
+        n += e;
+    }
+    
+    sum1 /= n;
+    sum2 /= n;
+    sum3 /= n;
+    
+    sum1 = max(0, sum1 - 0.006); sum2 = max(0, sum2 - 0.015); sum3 = max(0, sum3 - 0.029);
+    
+    Color = sum1 + sum2 + sum3;
+    
+	Color /= 1.08;
+    
+	
+	float2 linearDepthXid = tex2D(sumDepthSamp,Tex).xy;
+	float linearDepth = linearDepthXid.x * SCENE_ZFAR;
+	float3 vpos = coord2WorldViewPos(Tex - ViewportOffset,linearDepth);
+	float3 wpos = mul(vpos,(float3x3)ViewInverse);
+	float3 view = normalize(CameraPosition - wpos);
+	
+	dir = float2(view.x*0.43,0);
+	float3 ghost = tex2Dlod( Samp, float4(Tex+dir, 0, 1) );
+	
+	Color.rgb += colorOffset(ghost)*0.5*max(0,0.18-abs(dir.x));
+	
+    return Color;
+}
+
+
+float4 PS_AL_DirectionalBlur2( float2 Tex: TEXCOORD0 , uniform sampler2D Samp) : COLOR 
+{   
+
+    float n = Epsilon;
+    float2 stex;
+    float4 sum = 0;
+    
+    float step = 1.0/1680.0;
+    
+    float2 dir = float2(1,0) * step;
+    float p = 1;
+    
+    [unroll]
+    for(int i = -GLARE_SAMPLE; i <= GLARE_SAMPLE; i++){
+		float fact = 2.0 * (float)i / GLARE_SAMPLE;
+        float e = exp(-pow(fact, 2) / 2);
+
+        stex = Tex + dir * (float)i;
+        
+		float4 color = tex2Dlod( Samp, float4(stex, 0, 0) );
+		sum += color * e;
+
+        n += e;
+    }
+
+    sum /= n;
+
+    return sum;
+}
+
+float4 PS_Unconvolution( float2 Tex: TEXCOORD0 , uniform sampler2D Samp) : COLOR 
+{   
+	float4 color = tex2Dlod( Samp, float4(Tex, 0, 0) );
+	float4 colorU = tex2Dlod( Samp, float4(Tex+float2(0,ViewportOffset2.y), 0, 0) );
+	float4 colorD = tex2Dlod( Samp, float4(Tex-float2(0,ViewportOffset2.y), 0, 0) );
+	return max(0,color*3-colorU-colorD);
+	// return color;
+}
+#define HDRGLARE\
+		"RenderColorTarget0=BloomTexture1st2Y;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=DOHDRGLARE1;" \
+		\
+		"RenderColorTarget0=BloomTexture1st;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+    	"Pass=DOHDRGLARE2;" \
+		\
+		"RenderColorTarget0=Blur4WorkBuff0;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+    	"Pass=UNCONVOLUTION;" \
+		
+#define HDRGLAREPASS \
+	pass DOHDRGLARE1 < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 PS_AL_DirectionalBlur1(Blur4WorkBuff0SamplerB);  \
+	} \
+	pass DOHDRGLARE2 < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 PS_AL_DirectionalBlur2(BloomTexture1st2YSamp);  \
+	} \
+	pass UNCONVOLUTION < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 POST_VS();  \
+		PixelShader  = compile ps_3_0 PS_Unconvolution(BloomTexture1stSamp);  \
+	}
+
+#endif
+
+
+//Len Ghost from Ray-mmd
+void VS_LenGhost(
+	inout float4 Position : POSITION,
+	in float2 Texcoord : TEXCOORD,
+	out float4 oTexcoord0 : TEXCOORD0,
+	out float4 oTexcoord1 : TEXCOORD1,
+	uniform float4 scalar)
+{
+	oTexcoord0.xy = (Texcoord - 0.5) * scalar[0] + 0.5;
+	oTexcoord0.zw = (Texcoord - 0.5) * scalar[1] + 0.5;
+	oTexcoord1.xy = (Texcoord - 0.5) * scalar[2] + 0.5;
+	oTexcoord1.zw = (Texcoord - 0.5) * scalar[3] + 0.5;
+}
+
+float coord2sphereFac(float2 tex)
+{
+	tex -= 0.5;
+	float factor = length(tex);
+	return min(1,exp(-9*factor)*5);
+}
+
+float4 PS_LenGhost(
+	in float4 coord0 : TEXCOORD0,
+	in float4 coord1 : TEXCOORD1,
+	uniform sampler source1,
+	uniform sampler source2,
+	uniform sampler source3,
+	uniform float4 colorCoeff[4], uniform float threshold) : COLOR
+{
+	float ghostThreshold = threshold / (1 - threshold + Epsilon) * 10.0;
+	float4 color1 = saturate(tex2Dlod(source1, float4(coord0.xy, 0, 0)) - ghostThreshold) * colorCoeff[0];
+	float4 color2 = saturate(tex2Dlod(source1, float4(coord0.zw, 0, 0)) - ghostThreshold) * colorCoeff[1];
+	float4 color3 = saturate(tex2Dlod(source2, float4(coord1.xy, 0, 0)) - ghostThreshold) * colorCoeff[2];
+	float4 color4 = saturate(tex2Dlod(source3, float4(coord1.zw, 0, 0)) - ghostThreshold) * colorCoeff[3];
+	
+	color1 *= coord2sphereFac(coord0.xy);
+	color2 *= coord2sphereFac(coord0.zw);
+	color3 *= coord2sphereFac(coord1.xy);
+	color4 *= coord2sphereFac(coord1.zw);
+	
+	return color1 + color2 + color3 + color4;
+}
+
+
+static float4 ghost_scalar1st = float4(-4.0, 3.0, -2.0, 0.3);
+static float4 ghost_scalar2nd = float4(3.6, 2.0, 0.9, -0.77);
+
+static const float4 ghost_modulation1st[4] = {float4(0.1, 0.10, 1.00, 1.0), float4(0.2, 0.30, 1.0, 1.0), float4(0.10, 0.20, 0.60, 1.0), float4(0.60, 0.30, 1.00, 1.0)};
+static const float4 ghost_modulation2nd[4] = {float4(0.6, 0.20, 0.20, 1.0), float4(0.2, 0.06, 0.6, 1.0), float4(0.15, 0.00, 0.10, 1.0), float4(0.06, 0.00, 0.55, 1.0)};
+
+#define LenGhost \
+		"RenderColorTarget0=BloomTexture1st;" \
+    	"RenderDepthStencilTarget=mrt_Depth;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=Ghost1st;" \
+		\
+		"RenderColorTarget0=BloomTexture1st2Y;" \
+		"ClearSetColor=ClearColor;Clear=Color;" \
+    	"Pass=Ghost2nd;" 
+
+
+#define LenGhostPass \
+	pass Ghost1st < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 VS_LenGhost(ghost_scalar1st);  \
+		PixelShader  = compile ps_3_0 PS_LenGhost(BloomTexture4thSamp,BloomTexture3rdSamp,BloomTexture2ndSamp,ghost_modulation1st,0.05); \
+	} \
+	pass Ghost2nd < string Script= "Draw=Buffer;"; >   \
+	{	\
+		AlphaBlendEnable = FALSE;  \
+		ZFUNC=ALWAYS;  \
+		ALPHAFUNC=ALWAYS;  \
+		VertexShader = compile vs_3_0 VS_LenGhost(ghost_scalar2nd);  \
+		PixelShader  = compile ps_3_0 PS_LenGhost(BloomTexture1stSamp,BloomTexture1stSamp,BloomTexture3rdSamp,ghost_modulation2nd,0.0);  \
 	}

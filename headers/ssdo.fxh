@@ -66,12 +66,8 @@ float4 PS_AO( float2 Tex: TEXCOORD0 ) : COLOR
 		sum += ao;
 		#if SSDO_COLOR_BLEEDING > 0
 		float3 bouns = easysrgb2linear(tex2D(AlbedoGbufferSamp,uv).xyz);
-		float MINofBouns = min(min(bouns.x,bouns.y),bouns.z)*2;
-		if(any(bouns - MINofBouns.xxx))
-		{
-			bouns*=(1 + tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz);
-			col += min(0.3,ao) * bouns;
-		}
+		bouns*=(1 + tex2D(IBLDiffuseSampler, computeSphereCoord(tex2D(sumNormalSamp,uv).xyz)).xyz);
+		col += min(0.28,ao) * bouns;
 		#endif
 		
 		totalCRad += radMul;

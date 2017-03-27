@@ -201,12 +201,30 @@ inline float3 AF(float3 x)
 	return (x * (A * x + B)) / (x * (C * x + D) + E);
 }
 
+inline float3 uncharted(float3 x)
+{
+    const float a = 0.22;
+    const float b = 0.30;
+    const float c = 0.10;
+    const float d = 0.20;
+    const float e = 0.01;
+    const float f = 0.30;
+
+    return ((x * (a * x + c * b) + d * e) / (x * (a * x + b) + d * f)) - e / f;
+}
+
 float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 {
 	float3 ocolor = tex2D(Blur4WorkBuff1Sampler,Tex).xyz;
-	float3 bloom = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
-	ocolor += bloom;
-	
+	float3 bloom = tex2D(Blur4WorkBuff2Sampler,Tex).xyz;
+	float3 ghost = tex2D(BloomTexture1st2YSamp,Tex).xyz;
+	#if GLARE_SAMPLE > 0
+	float3 glare = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
+	ocolor += bloom + glare + ghost;
+	#else
+	ocolor += bloom + ghost;
+	#endif
+
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0)).r;
 
@@ -216,7 +234,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
-	color = AF(color * adapted_lum_dest)/AF(0.8);
+	color = AF(color * adapted_lum_dest)/AF(0.82);
 	return float4(color,1);
 }
 

@@ -124,6 +124,7 @@ struct POST_OUTPUT {
 #if VOLUMETRIC_FOG_SAMPLE > 0
 #include "headers\\fog.fxh"
 #endif	
+#include "headers\\bloom.fxh"
 #include "headers\\toneMapping.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef USE_SMAA
@@ -168,8 +169,11 @@ float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 
 	float4 c = tex2D(Samp,Tex);
 	return float4(c.rgb,1);
+	// float3 glare = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
+	// float3 bloom = tex2D(Blur4WorkBuff2Sampler,Tex).xyz;
+	// return float4(glare + bloom,1);
 }
-
+		
 inline float3 CalcTranslucency(float s)
 {
 	//http://iryoku.com/translucency/
@@ -336,7 +340,7 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	ocolor.xyz *= (1-dot(fog, RGB2LUM)*0.5);
 	ocolor.xyz += fog;
 	ocolor.a = 1;
-			
+
 	float l = dot(RGB2LUM,ocolor.xyz);
 	lum = float4(log(l + Epsilon),0,0,1);
 	highLight = tex2Dlod(EmitterView, float4(Tex, 0, 0));
@@ -346,10 +350,7 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	highLight.a = 1;
 	return;
 }
-		
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-#include "headers\\bloom.fxh"
+	
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #define BLUR_PSSM_AO \
 		"RenderColorTarget0=Blur2WorkBuff0;" \
@@ -449,12 +450,18 @@ string Script =
 		
 		HDRBLOOMCOMP
 		
+		#if GLARE_SAMPLE > 0
+		HDRGLARE
+		#endif
+		
+		LenGhost
+		
 		"RenderColorTarget0=mrt;"
     	"RenderDepthStencilTarget=mrt_Depth;"
 		"ClearSetDepth=ClearDepth;Clear=Depth;"
 		"ClearSetColor=ClearColor;Clear=Color;"
     	"Pass=ToneMapping;"
-			
+
 		#ifndef USE_SMAA
 		"RenderColorTarget0=;"
     	"RenderDepthStencilTarget=;"
@@ -464,8 +471,6 @@ string Script =
 		#else
 		DO_SMAA
 		#endif
-
-		/*SSR_HT*/
 		
 		// "RenderColorTarget0=;"
     	// "RenderDepthStencilTarget=;"
@@ -486,7 +491,7 @@ string Script =
 	{
 		AlphaBlendEnable = FALSE;
 		VertexShader = compile vs_3_0 POST_VS();
-		PixelShader  = compile ps_3_0 COPY_PS(AlbedoGbufferSamp);
+		PixelShader  = compile ps_3_0 COPY_PS(BloomTexture1st2YSamp);
 	}
 	
 	pass SUMGDN < string Script= "Draw=Buffer;"; > {
@@ -563,7 +568,7 @@ string Script =
         PixelShader  = compile ps_3_0 PBR_ALPHAFRONT_PS();
     }
 	
-	pass PBRAFTERCOMP < string Script= "Draw=Buffer;"; > 
+	pass PBRAFTERCOMP < string Script= "Draw=Buffer;"; >
 	{
 		AlphaBlendEnable = FALSE;
 		ZFUNC=ALWAYS;
@@ -592,5 +597,8 @@ string Script =
 	DownSampHL4X1stPass
 	HDRBLOOMPASS
 	HDRBLOOMCOMPPASS
-	// SSR_RAYTRACING_PASS
+	#if GLARE_SAMPLE > 0
+	HDRGLAREPASS
+	#endif
+	LenGhostPass
 }	
