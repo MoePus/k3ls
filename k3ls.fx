@@ -30,7 +30,9 @@ float  specAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; str
 float  shadowPlus			: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="shadow+"; >;
 float  aoPlus				: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="ao+"; >;
 float  directLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="directLight+"; >;
-float  colorTemperature		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="colorTemperature"; >;
+float  exposureP		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure+"; >;
+float  exposureM		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure-"; >;
+
 static float3 LightAmbient = _LightAmbient * (2 + 4 * directLightPlus);
 ///////////////////////////////////////////////////////////////////////////////////////////////
 texture2D mrt : RENDERCOLORTARGET <

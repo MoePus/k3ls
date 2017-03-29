@@ -29,8 +29,6 @@ float3 ColorTemperatureToRGB(float temperatureInKelvins)
     return retColor;
 }
 
-static float3 temperatureColor = ColorTemperatureToRGB(colorTemperature*10000.0 + 1000.0);
-
 texture2D lumTexture : RENDERCOLORTARGET <
 	float2 ViewportRatio = {1.0, 1.0};
 	int MipLevel = 1;
@@ -213,6 +211,12 @@ inline float3 uncharted(float3 x)
     return ((x * (a * x + c * b) + d * e) / (x * (a * x + b) + d * f)) - e / f;
 }
 
+float  cbRP		: CONTROLOBJECT < string name = "colorBalance.pmx"; string item="R+"; >;
+float  cbGP		: CONTROLOBJECT < string name = "colorBalance.pmx"; string item="G+"; >;
+float  cbBP		: CONTROLOBJECT < string name = "colorBalance.pmx"; string item="B+"; >;
+float  colorTemperature		: CONTROLOBJECT < string name = "colorBalance.pmx"; string item="colorTemperature"; >;
+static float3 temperatureColor = ColorTemperatureToRGB(colorTemperature*10000.0 + 1000.0);
+
 float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 {
 	float3 ocolor = tex2D(Blur4WorkBuff1Sampler,Tex).xyz;
@@ -225,6 +229,8 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	ocolor += bloom + ghost;
 	#endif
 
+	ocolor *= 1 + float3(cbRP,cbGP,cbBP);
+	
 	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
 	float adapted_lum = tex2Dlod(adaptedLumSamp, float4(0.5,0.5,0,0)).r;
 
@@ -234,7 +240,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	
 	float adapted_lum_dest = 2. / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
 	
-	color = AF(color * adapted_lum_dest)/AF(0.82);
+	color = AF(color * adapted_lum_dest)/AF(0.85-exposureP*0.6+exposureM*1.3);
 	return float4(color,1);
 }
 
