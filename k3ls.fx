@@ -30,6 +30,7 @@ float  specAmbientMinus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; str
 float  shadowPlus			: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="shadow+"; >;
 float  aoPlus				: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="ao+"; >;
 float  directLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="directLight+"; >;
+float  skyLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="skyLight+"; >;
 float  exposureP		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure+"; >;
 float  exposureM		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure-"; >;
 
@@ -242,7 +243,8 @@ out float4 ospec
 void PBR_NONEALPHA_PS(float2 Tex: TEXCOORD0,out float4 odiff : COLOR0,out float4 ospec : COLOR1)
 {
 	float4 sky = tex2D(MRTSamp,Tex);
-
+	sky.xyz *= (1.0 + skyLightPlus * 6.0);
+	
 	float4 albedo = tex2D(AlbedoGbufferSamp,Tex);
 	float4 spaMap = tex2D(SpaGbufferSamp,Tex);
 	float3 normal = tex2D(NormalGbufferSamp,Tex).xyz;
