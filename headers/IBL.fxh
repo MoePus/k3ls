@@ -96,3 +96,9 @@ void IBL(float3 view, float3 normal,float roughness, out float3 diffuse, out flo
     diffuse = prefilteredDiffuse.rgb;
     specular = prefilteredSpeculr.rgb;
 }
+
+float3 subsurfaceIBLDiffuse(float3 normal)
+{
+	float3 N = mul(rotate, normal);
+	return DecodeHDR(tex2D(IBLDiffuseSampler, computeSphereCoord(-N)));
+}

@@ -77,8 +77,8 @@ inline float DiffuseBSDF(float roughness,float3 normal,float3 lightNormal,float3
 	//Blender/gpu/shaders/gpu_shader_material.glsl
 	float3 halfVector = normalize( viewNormal + lightNormal );
 	float bsdf = max(dot(lightNormal,normal), 0.0) * 2 + pow(max(dot(normal, halfVector), 0.0), 1.0 / roughness);
-	bsdf *= 0.34;
-	return bsdf;
+
+	return bsdf*0.5;
 }
 
 inline float3 AmbientBRDF_UE4( float3 SpecularColor, float Roughness, float NoV )

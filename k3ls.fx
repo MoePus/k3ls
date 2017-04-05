@@ -212,7 +212,8 @@ out float4 ospec
 	
 	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),metalness);
 
-	float en = lerp(DiffuseBRDF(roughness,normal,lightNormal,viewNormal),DiffuseBSDF(roughness,normal,lightNormal,viewNormal),min(1,Epsilon+cp.SSS*0.85));
+	float sssF = min(1,Epsilon+cp.SSS*0.85);
+	float en = DiffuseBRDF(roughness,normal,lightNormal,viewNormal);
 	float3 diffuse = NL*albedo.xyz*invPi*en*LightAmbient*(1-metalness);
 	float3 specular = NL*BRDF(roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
 	
@@ -224,6 +225,7 @@ out float4 ospec
 	float3 Hemisphere = lerp(AmbLightColor1.xyz, AmbLightColor0.xyz, SdN*SdN);
 	float3 IBLD,IBLS;
 	IBL(viewNormal,normal,roughness,IBLD,IBLS);
+	IBLD = IBLD*(1.0-sssF*0.5) + subsurfaceIBLDiffuse(normal)*sssF*0.5;
 	
 	float NoV = saturate(dot(normal,viewNormal));
 	float3 ambientDiffuse =  albedo.xyz * Hemisphere + AmbientColor * albedo.xyz * IBLD * lerp(0.85, 0, metalness)*(1 - diffAmbientMinus);
