@@ -34,7 +34,7 @@ sampler ScreenShadowMapSampler = sampler_state {
     AddressU  = CLAMP; AddressV = CLAMP;
 };
 
-float transmission(float c,float r)
+float dis(float c,float r)
 {
 	return saturate(abs((c-r)*(LightZMax)));
 }

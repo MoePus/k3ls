@@ -43,36 +43,32 @@ float4 CascadeShadowMapPS(float4 coord0 : TEXCOORD0, float4 position : TEXCOORD1
 
     float alpha = MaterialDiffuse.a;
     if ( useTexture ) alpha *= tex2D(DiffuseMapSamp, coord0.xy).a;
-    //clip(alpha - CasterAlphaThreshold);
+    clip(alpha - CasterAlphaThreshold);
 
-    return float4(position.z,0,0,alpha);
+    return float4(position.z,0,0,1);
 }
 
-#define alphaCliper \
-AlphaFunc = GREATER; \
-AlphaRef = CasterAlphaThreshold; \
-AlphaBlendEnable = false; AlphaTestEnable = true; 
 
 #define PSSM_TEC(name, mmdpass, tex) \
     technique name < string MMDPass = mmdpass; bool UseTexture = tex; \
     > { \
         pass CascadeShadowMap0 { \
-			alphaCliper \
+			AlphaBlendEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3(-1, 1, 0)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap1 { \
-			alphaCliper \
+			AlphaBlendEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3( 1, 1, 1)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap2 { \
-			alphaCliper \
+			AlphaBlendEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3(-1,-1, 2)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \
         pass CascadeShadowMap3 { \
-			alphaCliper \
+			AlphaBlendEnable = false; \
             VertexShader = compile vs_3_0 CascadeShadowMapVS(int3( 1,-1, 3)); \
             PixelShader  = compile ps_3_0 CascadeShadowMapPS(tex); \
         } \

@@ -9,7 +9,7 @@
 #define GLARE_SAMPLE				36
 #define FILL_2_FLOAT_TO_4			0
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#define CasterAlphaThreshold 140
+#define CasterAlphaThreshold 0.56
 #define RecieverAlphaThreshold 0.4
 #define materialAmount	10
 
