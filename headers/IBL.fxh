@@ -16,7 +16,7 @@ sampler IBLDiffuseSampler = sampler_state {
 };
 
 texture IBLSpecularTexture <
-    string ResourceName = "skybox\\skyspec.png"; 
+    string ResourceName = "skybox\\skyspec.dds"; 
 	int MipLevels = 7;
 >;
 sampler IBLSpecularSampler = sampler_state {

@@ -1,3 +1,20 @@
+sampler Controller0Samp = sampler_state {
+    texture = <baked_controllers0>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+sampler Controller1Samp = sampler_state {
+    texture = <baked_controllers1>;
+    MinFilter = POINT;
+	MagFilter = POINT;
+	MipFilter = NONE;
+    AddressU  = CLAMP;
+	AddressV  = CLAMP;
+};
+
 sampler AlbedoGbufferSamp = sampler_state {
     texture = <GBuffer_albedo>;
     MinFilter = POINT;

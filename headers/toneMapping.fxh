@@ -175,7 +175,7 @@ float4 LUM_PS(float2 Tex: TEXCOORD0) : COLOR
 	maxLum = max(maxLum,lumS.w);
 	float avgLum = (lumS.x + lumS.y + lumS.z + lumS.w)/4;
 	
-	float lum = 0.4*maxLum + 0.6*avgLum;
+	float lum = 0.2*maxLum + 0.8*avgLum;
 	lum = exp(maxLum);
 	lum = CalcAdaptedLum(tex2Dlod(bakedAdaptedLumSamp, float4(0.5,0.5,0,0)).r,lum);
 	return float4(lum.xxx,1);
@@ -223,7 +223,7 @@ float4 ToneMapping_PS(float2 Tex: TEXCOORD0) : COLOR
 	float3 bloom = tex2D(Blur4WorkBuff2Sampler,Tex).xyz;
 	float3 ghost = tex2D(BloomTexture1st2YSamp,Tex).xyz;
 	#if GLARE_SAMPLE > 0
-	float3 glare = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
+	float3 glare = tex2D(Blur4WorkBuff0Sampler,Tex).xyz * (1 - glareM);
 	ocolor += bloom + glare + ghost;
 	#else
 	ocolor += bloom + ghost;

@@ -4,6 +4,25 @@ sampler MMDSamp2 : register(s2);
 
 #include "headers\\environment.fxh"
 
+shared texture2D baked_controllers0: RENDERCOLORTARGET <
+    int Width = materialAmount;
+    int Height = 1;
+	string Format = YOR16F;
+>;
+shared texture2D baked_controllers1: RENDERCOLORTARGET <
+    int Width = materialAmount;
+    int Height = 1;
+	string Format = YOR16F;
+>;
+
+shared texture2D baked_controllers_depth : RENDERDEPTHSTENCILTARGET <
+    int Width = materialAmount;
+    int Height = 1;
+    string Format = "D24S8";
+>;
+
+
+///////////////////////////////////////////////////////
 shared texture2D GBuffer_depth : RENDERDEPTHSTENCILTARGET <
     float2 ViewPortRatio = {1.0,1.0};
     string Format = "D24S8";

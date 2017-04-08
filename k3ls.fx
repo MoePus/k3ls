@@ -33,6 +33,10 @@ float  directLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; stri
 float  skyLightPlus		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="skyLight+"; >;
 float  exposureP		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure+"; >;
 float  exposureM		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="exposure-"; >;
+float  glareM		: CONTROLOBJECT < string name = "Gbuffer_init.pmx"; string item="glare-"; >;
+float  mFogR		: CONTROLOBJECT < string name = "fogController.pmx"; string item="R+"; >;
+float  mFogG		: CONTROLOBJECT < string name = "fogController.pmx"; string item="G+"; >;
+float  mFogB		: CONTROLOBJECT < string name = "fogController.pmx"; string item="B+"; >;
 
 static float3 LightAmbient = _LightAmbient * (2 + 4 * directLightPlus);
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,10 +117,10 @@ struct POST_OUTPUT {
 #include "headers\\BRDF.fxh"
 #include "headers\\IBL.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
-#include "headers\\getControllerParams.fxh"
 #include "headers\\GbufferTextures.fxh"
 #include "headers\\GbufferSamplers.fxh"
 #include "headers\\GbufferClear.fxh"
+#include "headers\\getControllerParams.fxh"
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #include "headers\\pssm.fxh"
 #include "headers\\ssdo.fxh"
@@ -169,12 +173,8 @@ void sumG_PS(float2 Tex: TEXCOORD0,out float4 Depth : COLOR0,out float4 N : COLO
 }
 float4 COPY_PS(float2 Tex: TEXCOORD0 ,uniform sampler2D Samp) : COLOR
 {
-
-	float4 c = tex2D(Samp,Tex);
-	return float4(c.rgb,1);
-	// float3 glare = tex2D(Blur4WorkBuff0Sampler,Tex).xyz;
-	// float3 bloom = tex2D(Blur4WorkBuff2Sampler,Tex).xyz;
-	// return float4(glare + bloom,1);
+	float3 c0 = tex2D(Controller0Samp,Tex).xyz;
+	return float4(c0,1);
 }
 		
 inline float3 CalcTranslucency(float s)
@@ -194,9 +194,6 @@ out float4 odiff,
 out float4 ospec
 )
 {
-	albedo.xyz = srgb2linear(albedo.xyz);
-	albedo.xyz = max(albedo.xyz,0.002.xxx);//note: there is no pure black in the world.
-	
 	float2 shadowMap = tex2D(ScreenShadowMapSampler, Tex).xy;
 	float ShadowMapVal = saturate(shadowMap.x);
 	float ao = saturate(shadowMap.y);
@@ -209,6 +206,9 @@ out float4 ospec
 
 	ConParam cp;
 	getConParams(id,cp);
+	
+	albedo.xyz = lerp(srgb2linear(albedo.xyz),albedo.xyz,cp.islinear);
+	albedo.xyz = max(albedo.xyz,0.0025);//note: there is no pure black in the world.
 	
 	float3 f0 = lerp(0.04,max(0.04,spa)*(albedo.xyz*0.68169+0.31831),metalness);
 
@@ -331,7 +331,7 @@ void COMP_PS(float2 Tex: TEXCOORD0,out float4 ocolor : COLOR0,out float4 lum : C
 	float fogFactor = tex2D(FogWorkBuffSampler,Tex).x;
 	fogFactor = clamp(fogFactor,0,0.67) * 1.7;
 	fogFactor = pow(fogFactor,3.6) * 0.62;
-	float3 fog = fogFactor * LightAmbient * fogColor;
+	float3 fog = fogFactor * LightAmbient * float3(mFogR,mFogG,mFogB);
 	#else
 	float3 fog = 0;
 	#endif
