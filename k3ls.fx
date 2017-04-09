@@ -216,10 +216,10 @@ out float4 ospec
 	float en = DiffuseBRDF(roughness,normal,lightNormal,viewNormal);
 	float3 diffuse = NL*albedo.xyz*invPi*en*LightAmbient*(1-metalness);
 	float3 specular = NL*BRDF(roughness,f0,normal,lightNormal,viewNormal)*LightAmbient;
-	
+
 	float irradiance = max(0.3 + dot(-normal, lightNormal), 0.0);
-	float3 trans = CalcTranslucency((1-ShadowMapVal)/cp.translucency)*irradiance*albedo.xyz * 0.532 *step(Epsilon,cp.translucency);//Wrong but beautiful.
-	
+	float3 trans = CalcTranslucency((1-ShadowMapVal)/cp.translucency)*irradiance*albedo.xyz*0.6*step(Epsilon,cp.translucency)*LightAmbient;//Wrong but beautiful.
+
 	#define SKYDIR float3(0.0,1.0,0.0)
 	float SdN = dot(SKYDIR,normal)*0.5f+0.5f;
 	float3 Hemisphere = lerp(AmbLightColor1.xyz, AmbLightColor0.xyz, SdN*SdN);

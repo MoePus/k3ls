@@ -63,7 +63,7 @@ float4 SSOBJ(float2 Tex: TEXCOORD0) : COLOR
 	float3 N = tex2D(sumNormalSamp,Tex).xyz;
 
 	float3 VPos = coord2WorldViewPos(Tex - ViewportOffset,Depth);
-	float4 WPos = mul(float4(VPos,1),ViewInverse);
+	float4 WPos = mul(float4(VPos,1),ViewInverse)+0.05*float4(N,0);
 	
 	float4 LVPos = mul(WPos, matLightViewProject);
 	
